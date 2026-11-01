@@ -4,6 +4,7 @@ defmodule MusicPlatformApiWeb.StreamController do
   alias MusicPlatformApi.Music.Track
   alias MusicPlatformApi.ID3
 
+  # Потоковое воспроизведение аудиофайла
   def stream(conn, %{"id" => id}) do
     track = Repo.get!(Track, id)
 
@@ -22,7 +23,7 @@ defmodule MusicPlatformApiWeb.StreamController do
     end
   end
 
-  # Проверка на первичный запрос потока
+  # Проверка на первичный запрос аудиопотока
   defp initial_stream_request?(conn) do
     case get_req_header(conn, "range") do
       ["bytes=0-" <> _] -> true
@@ -31,7 +32,7 @@ defmodule MusicPlatformApiWeb.StreamController do
     end
   end
 
-  # Отправляет аудиофайл с учетом HTTP-заголовка Range для перемотки в плеере.
+  # Передача аудиопотока с поддержкой Range заголовка
   defp send_audio_stream(conn, path, file_size) do
     case get_req_header(conn, "range") do
       ["bytes=" <> range_spec] ->
@@ -49,7 +50,6 @@ defmodule MusicPlatformApiWeb.StreamController do
         {:ok, data} = :file.pread(file, start_byte, length)
         :file.close(file)
 
-        # Возврат контента по частям (Статус 206)
         conn
         |> put_resp_header("content-range", "bytes #{start_byte}-#{end_byte}/#{file_size}")
         |> put_resp_header("accept-ranges", "bytes")
@@ -58,7 +58,6 @@ defmodule MusicPlatformApiWeb.StreamController do
         |> send_resp(206, data)
 
       _ ->
-        # Возврат полностью
         conn
         |> put_resp_header("content-type", "audio/mpeg")
         |> put_resp_header("content-length", to_string(file_size))
@@ -67,6 +66,7 @@ defmodule MusicPlatformApiWeb.StreamController do
     end
   end
 
+  # Скачивание трека с внедрением ID3 тегов
   def download(conn, %{"id" => id}) do
     track =
       Track
@@ -81,9 +81,7 @@ defmodule MusicPlatformApiWeb.StreamController do
       pos_str = to_string(track.position || 1)
       year_str = if track.release_year, do: to_string(track.release_year), else: ""
 
-      # Загрузка бинарника обложки и MIME-типа (с гарантированным фолбэком)
       {cover_bytes, cover_mime} = load_track_cover(track)
-
       original_bytes = File.read!(track.file_path)
 
       tagged_audio =
@@ -97,7 +95,6 @@ defmodule MusicPlatformApiWeb.StreamController do
           cover_mime: cover_mime
         })
 
-      # Имя файла без недопустимых символов
       clean_name = String.replace("#{artist_name} – #{track_title}", ~r/[\\\/:\*\?"<>\|]/u, "")
       encoded_filename = URI.encode("#{clean_name}.mp3")
 
@@ -114,7 +111,7 @@ defmodule MusicPlatformApiWeb.StreamController do
     end
   end
 
-  # Получение данных обложки: сначала трек -> альбом -> артист -> дефолтная обложка
+  # Поиск и чтение обложки для трека
   defp load_track_cover(track) do
     cover_candidate =
       cond do
@@ -136,7 +133,6 @@ defmodule MusicPlatformApiWeb.StreamController do
         {bytes, mime}
 
       :error ->
-        # Попытка прочитать дефолтную обложку проекта
         case read_default_cover() do
           {:ok, bytes, mime} -> {bytes, mime}
           :error -> {nil, nil}
@@ -144,6 +140,7 @@ defmodule MusicPlatformApiWeb.StreamController do
     end
   end
 
+  # Чтение файла обложки по пути
   defp read_cover_file(nil), do: :error
   defp read_cover_file(""), do: :error
   defp read_cover_file(path_or_url) do
@@ -161,11 +158,11 @@ defmodule MusicPlatformApiWeb.StreamController do
     end
   end
 
+  # Чтение запасной обложки
   defp read_default_cover do
     default_candidates = [
       Path.expand("priv/static/uploads/covers/default_cover.jpg"),
       Path.expand("priv/static/default_cover.jpg"),
-      # Берем любую существующую обложку из загрузок как резерв
       Path.wildcard("priv/static/uploads/covers/*.jpg") |> List.first()
     ]
     |> Enum.reject(&is_nil/1)
@@ -178,9 +175,10 @@ defmodule MusicPlatformApiWeb.StreamController do
     end
   end
 
+  # Разрешение абсолютного пути к файлу на диске
   defp resolve_disk_path(nil), do: :error
   defp resolve_disk_path(""), do: :error
-  defp resolve_disk_path(url_or_path) do
+  defp resolve_disk_path(url_or_path) when is_binary(url_or_path) do
     clean_path = String.replace_leading(url_or_path, "/", "")
 
     candidates = [
@@ -202,7 +200,9 @@ defmodule MusicPlatformApiWeb.StreamController do
       path -> {:ok, path}
     end
   end
+  defp resolve_disk_path(_), do: :error
 
+  # Определение MIME-типа изображения
   defp detect_mime(path, binary) do
     ext = Path.extname(path) |> String.downcase()
     cond do

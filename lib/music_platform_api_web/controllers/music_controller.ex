@@ -21,13 +21,35 @@ defmodule MusicPlatformApiWeb.MusicController do
     end
   end
 
-  # Список артистов по популярности
-  def list_artists(conn, _params) do
-    artists = Repo.all(from a in Artist, where: a.status == "approved", order_by: [desc: a.plays_count, desc: a.inserted_at])
+  # Список артистов с поддержкой фильтрации по жанру и поиску
+  def list_artists(conn, params) do
+    genre_param = Map.get(params, "genre")
+    search_param = Map.get(params, "search")
+
+    query = from a in Artist, where: a.status == "approved"
+
+    query =
+      if genre_param && String.trim(genre_param) != "" do
+        target = String.trim(genre_param)
+        from a in query, where: ^target in a.genres or ilike(a.genre, ^"%#{target}%")
+      else
+        query
+      end
+
+    query =
+      if search_param && String.trim(search_param) != "" do
+        search_term = "%#{String.trim(search_param)}%"
+        from a in query, where: ilike(a.name, ^search_term)
+      else
+        query
+      end
+
+    query = from a in query, order_by: [desc: a.plays_count, desc: a.inserted_at]
+    artists = Repo.all(query)
     json(conn, %{success: true, data: artists})
   end
 
-  # Создание профиля артиста
+  # Создание профиля артиста с парсингом жанров
   def create_artist(conn, params) do
     with {:ok, user} <- authenticate_user(conn) do
       params =
@@ -38,12 +60,91 @@ defmodule MusicPlatformApiWeb.MusicController do
           params
         end
 
+      params =
+        case Map.get(params, "genres") do
+          list when is_list(list) ->
+            params
+
+          str when is_binary(str) ->
+            parsed =
+              str
+              |> String.split(",")
+              |> Enum.map(&String.trim/1)
+              |> Enum.reject(&(&1 == ""))
+
+            Map.put(params, "genres", parsed)
+
+          _ ->
+            if genre_str = Map.get(params, "genre") do
+              parsed =
+                genre_str
+                |> String.split(",")
+                |> Enum.map(&String.trim/1)
+                |> Enum.reject(&(&1 == ""))
+
+              Map.put(params, "genres", parsed)
+            else
+              params
+            end
+        end
+
       case Music.create_artist(params, user.id) do
-        {:ok, artist} -> conn |> put_status(:created) |> json(%{success: true, artist: artist})
-        {:error, changeset} -> conn |> put_status(:bad_request) |> json(%{errors: changeset})
+        {:ok, artist} ->
+          conn
+          |> put_status(:created)
+          |> json(%{success: true, artist: artist})
+
+        {:error, changeset} ->
+          errors = Ecto.Changeset.traverse_errors(changeset, fn {msg, _opts} -> msg end)
+          conn
+          |> put_status(:bad_request)
+          |> json(%{error: "Ошибка создания артиста", details: errors})
       end
     else
-      {:error, :unauthorized} -> conn |> put_status(:unauthorized) |> json(%{error: "Требуется авторизация"})
+      {:error, :unauthorized} ->
+        conn |> put_status(:unauthorized) |> json(%{error: "Требуется авторизация"})
+    end
+  end
+
+  # Обновление артиста
+  def update_artist(conn, %{"id" => id} = params) do
+    with {:ok, user} <- authenticate_user(conn) do
+      artist = Repo.get!(Artist, id)
+      is_staff = user.role in ["owner", "admin", "moderator"]
+
+      if artist.creator_id != user.id and not is_staff do
+        conn |> put_status(:forbidden) |> json(%{error: "Нет прав на изменение"})
+      else
+        params =
+          case Map.get(params, "genres") do
+            list when is_list(list) ->
+              params
+
+            str when is_binary(str) ->
+              parsed =
+                str
+                |> String.split(",")
+                |> Enum.map(&String.trim/1)
+                |> Enum.reject(&(&1 == ""))
+
+              Map.put(params, "genres", parsed)
+
+            _ ->
+              params
+          end
+
+        case artist |> Artist.changeset(params) |> Repo.update() do
+          {:ok, updated} ->
+            json(conn, %{success: true, artist: updated})
+
+          {:error, changeset} ->
+            errors = Ecto.Changeset.traverse_errors(changeset, fn {msg, _opts} -> msg end)
+            conn |> put_status(:bad_request) |> json(%{error: "Ошибка обновления артиста", details: errors})
+        end
+      end
+    else
+      {:error, :unauthorized} ->
+        conn |> put_status(:unauthorized) |> json(%{error: "Требуется авторизация"})
     end
   end
 
@@ -255,6 +356,26 @@ defmodule MusicPlatformApiWeb.MusicController do
     end
   end
 
+  # Обновление трека
+  def update_track(conn, %{"id" => id} = params) do
+    with {:ok, user} <- authenticate_user(conn) do
+      track = Repo.get!(Track, id)
+      is_staff = user.role in ["owner", "admin", "moderator"]
+
+      if track.creator_id != user.id and not is_staff do
+        conn |> put_status(:forbidden) |> json(%{error: "Нет прав на изменение"})
+      else
+        case track |> Track.changeset(params) |> Repo.update() do
+          {:ok, updated} -> json(conn, %{success: true, track: updated})
+          {:error, changeset} -> conn |> put_status(:bad_request) |> json(%{errors: changeset})
+        end
+      end
+    else
+      {:error, :unauthorized} ->
+        conn |> put_status(:unauthorized) |> json(%{error: "Требуется авторизация"})
+    end
+  end
+
   # Список избранного
   def list_favorites(conn, params) do
     with {:ok, user} <- authenticate_user(conn) do
@@ -356,7 +477,7 @@ defmodule MusicPlatformApiWeb.MusicController do
           conn |> put_status(:not_found) |> json(%{error: "Плейлист не найден"})
 
         playlist ->
-          is_staff = user.role in ["admin", "moderator"]
+          is_staff = user.role in ["admin", "moderator", "owner"]
 
           if playlist.user_id != user.id and not is_staff do
             conn |> put_status(:forbidden) |> json(%{error: "Нет прав на редактирование плейлиста"})
@@ -391,7 +512,7 @@ defmodule MusicPlatformApiWeb.MusicController do
           conn |> put_status(:not_found) |> json(%{error: "Плейлист не найден"})
 
         playlist ->
-          is_staff = user.role in ["admin", "moderator"]
+          is_staff = user.role in ["admin", "moderator", "owner"]
 
           if playlist.user_id != user.id and not is_staff do
             conn |> put_status(:forbidden) |> json(%{error: "Нет прав на удаление плейлиста"})
@@ -446,7 +567,7 @@ defmodule MusicPlatformApiWeb.MusicController do
           conn |> put_status(:not_found) |> json(%{error: "Плейлист не найден"})
 
         playlist ->
-          is_staff = user.role in ["admin", "moderator"]
+          is_staff = user.role in ["admin", "moderator", "owner"]
 
           if playlist.user_id != user.id and not is_staff do
             conn |> put_status(:forbidden) |> json(%{error: "Нет прав для изменения плейлиста"})

@@ -28,6 +28,12 @@ defmodule MusicPlatformApiWeb.Router do
     get "/stream/:id", StreamController, :stream
     get "/download/:id", StreamController, :download
 
+    # Кластер жанров
+    get "/genres", GenreController, :index
+    post "/genres", GenreController, :create
+    put "/genres/:id", GenreController, :update
+    delete "/genres/:id", GenreController, :delete
+
     # Каталог и уведомления
     get "/artists", MusicController, :list_artists
     get "/artists/:id", MusicController, :get_artist
@@ -54,7 +60,7 @@ defmodule MusicPlatformApiWeb.Router do
     post "/moderation/decision", ModerationController, :make_decision
     post "/moderation/approve-with-edit", ModerationController, :approve_with_edit
 
-    # Управление ролями (только для owner)
+    # Управление ролями (только для owner и admin)
     get "/admin/users", AdminController, :list_users
     put "/admin/users/:id/role", AdminController, :update_role
 

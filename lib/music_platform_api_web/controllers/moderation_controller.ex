@@ -168,6 +168,31 @@ defmodule MusicPlatformApiWeb.ModerationController do
           end
 
         update_attrs =
+          if schema == Artist do
+            raw_genres = Map.get(params, "genres") || Map.get(params, "genres[]")
+            genre_str = Map.get(params, "genre")
+
+            genres_list =
+              cond do
+                is_list(raw_genres) -> raw_genres
+                is_binary(raw_genres) -> String.split(raw_genres, ",") |> Enum.map(&String.trim/1)
+                is_binary(genre_str) -> String.split(genre_str, ",") |> Enum.map(&String.trim/1)
+                true -> nil
+              end
+
+            if genres_list do
+              cleaned = Enum.reject(genres_list, &(&1 == ""))
+              update_attrs
+              |> Map.put(:genres, cleaned)
+              |> Map.put(:genre, Enum.join(cleaned, ", "))
+            else
+              update_attrs
+            end
+          else
+            update_attrs
+          end
+
+        update_attrs =
           if Map.has_key?(params, "release_year") do
             yr = Music.parse_int(params["release_year"])
             Map.put(update_attrs, :release_year, if(yr > 0, do: yr, else: nil))
