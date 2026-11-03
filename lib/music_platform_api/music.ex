@@ -147,9 +147,9 @@ defmodule MusicPlatformApi.Music do
   def notify_creator(schema, item, status, comment) do
     item_name =
       case schema do
-        Artist -> "Исполнитель \"#{item.name}\""
-        Album -> "Альбом \"#{item.title}\""
-        Track -> "Сингл \"#{item.title}\""
+        Artist -> "исполнитель \"#{item.name}\""
+        Album -> "альбом \"#{item.title}\""
+        Track -> "сингл \"#{item.title}\""
       end
 
     {title, type, message} =

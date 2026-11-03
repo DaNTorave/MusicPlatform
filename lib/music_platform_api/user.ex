@@ -15,6 +15,9 @@ defmodule MusicPlatformApi.User do
     field :role, :string, default: "member"
     field :is_premium, :boolean, default: false
 
+    field :preferred_genres, {:array, :string}, default: []
+    field :preferred_artist_ids, {:array, :integer}, default: []
+
     has_many :artists, MusicPlatformApi.Music.Artist, foreign_key: :creator_id
     has_many :albums, MusicPlatformApi.Music.Album, foreign_key: :creator_id
     has_many :tracks, MusicPlatformApi.Music.Track, foreign_key: :creator_id
@@ -28,7 +31,14 @@ defmodule MusicPlatformApi.User do
   # Валидация при регистрации
   def registration_changeset(user, attrs) do
     user
-    |> cast(attrs, [:login, :email, :password, :nickname])
+    |> cast(attrs, [
+      :login,
+      :email,
+      :password,
+      :nickname,
+      :preferred_genres,
+      :preferred_artist_ids
+    ])
     |> validate_required([:login, :email, :password])
     |> validate_length(:login, min: 3, max: 30)
     |> validate_format(:login, ~r/^[a-zA-Z0-9_]+$/)
@@ -43,7 +53,13 @@ defmodule MusicPlatformApi.User do
   # Обновление публичных данных профиля
   def update_changeset(user, attrs) do
     user
-    |> cast(attrs, [:nickname, :avatar, :is_premium])
+    |> cast(attrs, [
+      :nickname,
+      :avatar,
+      :is_premium,
+      :preferred_genres,
+      :preferred_artist_ids
+    ])
     |> validate_length(:nickname, min: 1, max: 50)
   end
 

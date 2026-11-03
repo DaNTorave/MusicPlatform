@@ -1,6 +1,5 @@
 defmodule MusicPlatformApiWeb.AuthController do
   use MusicPlatformApiWeb, :controller
-  # alias MusicPlatformApi.{Auth, PasswordUtils}
   alias MusicPlatformApi.User
   alias MusicPlatformApi.Auth
 
@@ -35,6 +34,8 @@ defmodule MusicPlatformApiWeb.AuthController do
             role: user.role,
             is_premium: user.is_premium,
             avatar: user.avatar,
+            preferred_genres: user.preferred_genres || [],
+            preferred_artist_ids: user.preferred_artist_ids || [],
             inserted_at: user.inserted_at,
             updated_at: user.updated_at
           },
@@ -67,6 +68,8 @@ defmodule MusicPlatformApiWeb.AuthController do
                 role: user.role,
                 is_premium: user.is_premium,
                 avatar: user.avatar,
+                preferred_genres: user.preferred_genres || [],
+                preferred_artist_ids: user.preferred_artist_ids || [],
                 inserted_at: user.inserted_at,
                 updated_at: user.updated_at
               },
@@ -147,7 +150,6 @@ defmodule MusicPlatformApiWeb.AuthController do
   def request_reset_password(conn, %{"email" => email}) do
     case Auth.request_password_reset(email) do
       {:ok, %{code: code, reset_token: reset_token}} ->
-        # На выход отдается сгенерированный код и токен подтверждения
         json(conn, %{
           message: "Код подтверждения сгенерирован",
           code: code,
@@ -198,15 +200,9 @@ defmodule MusicPlatformApiWeb.AuthController do
   def get_profile(conn, _params) do
     case get_req_header(conn, "authorization") do
       ["Bearer " <> token] ->
-        IO.inspect(token, label: "Token received")
-
-        # Проверка на валидность и срок действия
         case Auth.verify_token(token) do
           {:ok, claims} ->
-            IO.inspect(claims, label: "Claims from token")
-
             case claims do
-              # Извлечение и валидация айдишника
               %{"user_id" => user_id} when is_integer(user_id) ->
                 case Auth.get_user(user_id) do
                   nil ->
@@ -224,6 +220,8 @@ defmodule MusicPlatformApiWeb.AuthController do
                         role: user.role,
                         is_premium: user.is_premium,
                         avatar: user.avatar,
+                        preferred_genres: user.preferred_genres || [],
+                        preferred_artist_ids: user.preferred_artist_ids || [],
                         inserted_at: user.inserted_at,
                         updated_at: user.updated_at
                       }
@@ -233,7 +231,6 @@ defmodule MusicPlatformApiWeb.AuthController do
                 return_error(conn, :unauthorized, "Недействительный токен (нет user_id)")
             end
           {:error, reason} ->
-            IO.inspect(reason, label: "Token verification error")
             return_error(conn, :unauthorized, "Недействительный токен: #{reason}")
         end
       _ ->
@@ -241,7 +238,7 @@ defmodule MusicPlatformApiWeb.AuthController do
     end
   end
 
-  # Помощник для безопасного извлечения айдишника
+  # Помощник для безопасного извлечения идентификатора
   defp extract_user_id_from_header(conn) do
     with ["Bearer " <> token] <- get_req_header(conn, "authorization"),
          {:ok, %{"user_id" => user_id}} when is_integer(user_id) <- Auth.verify_token(token) do
@@ -251,7 +248,7 @@ defmodule MusicPlatformApiWeb.AuthController do
     end
   end
 
-  # Получение профиля по айдишнику
+  # Получение профиля по идентификатору
   def get_public_profile(conn, %{"id" => id}) do
     case Integer.parse(id) do
       {user_id, ""} ->
@@ -260,10 +257,8 @@ defmodule MusicPlatformApiWeb.AuthController do
             return_error(conn, :not_found, "Пользователь не найден")
 
           user ->
-            # Извлекаем айдишник, если всё хорошо
             current_user_id = extract_user_id_from_header(conn)
 
-            # Если пользователь смотрит сам себя и айдишик валидный
             if is_integer(current_user_id) && user.id == current_user_id do
               conn
               |> put_status(:ok)
@@ -277,12 +272,13 @@ defmodule MusicPlatformApiWeb.AuthController do
                   role: user.role,
                   is_premium: user.is_premium,
                   avatar: user.avatar,
+                  preferred_genres: user.preferred_genres || [],
+                  preferred_artist_ids: user.preferred_artist_ids || [],
                   inserted_at: user.inserted_at,
                   updated_at: user.updated_at
                 }
               })
             else
-              # Для сторонних пользователей
               conn
               |> put_status(:ok)
               |> json(%{
@@ -294,6 +290,8 @@ defmodule MusicPlatformApiWeb.AuthController do
                   avatar: user.avatar,
                   role: user.role,
                   is_premium: user.is_premium,
+                  preferred_genres: user.preferred_genres || [],
+                  preferred_artist_ids: user.preferred_artist_ids || [],
                   inserted_at: user.inserted_at
                 }
               })
@@ -305,9 +303,65 @@ defmodule MusicPlatformApiWeb.AuthController do
     end
   end
 
+  # Обновление предпочтений пользователя
+  def update_preferences(conn, params) do
+    conn = authenticate_request(conn, [])
+    if conn.halted do
+      conn
+    else
+      user = conn.assigns.current_user
+      genres = Map.get(params, "preferred_genres", [])
+      artist_ids = Map.get(params, "preferred_artist_ids", [])
+
+      clean_genres =
+        if is_list(genres), do: Enum.map(genres, &to_string/1), else: []
+
+      clean_artist_ids =
+        if is_list(artist_ids) do
+          Enum.map(artist_ids, fn
+            id when is_integer(id) -> id
+            id when is_binary(id) ->
+              case Integer.parse(id) do
+                {int_id, ""} -> int_id
+                _ -> nil
+              end
+            _ -> nil
+          end)
+          |> Enum.reject(&is_nil/1)
+        else
+          []
+        end
+
+      case Auth.update_user(user, %{
+        "preferred_genres" => clean_genres,
+        "preferred_artist_ids" => clean_artist_ids
+      }) do
+        {:ok, updated_user} ->
+          json(conn, %{
+            success: true,
+            message: "Предпочтения успешно сохранены",
+            user: %{
+              id: updated_user.id,
+              login: updated_user.login,
+              email: updated_user.email,
+              nickname: updated_user.nickname,
+              role: updated_user.role,
+              avatar: updated_user.avatar,
+              is_premium: updated_user.is_premium,
+              preferred_genres: updated_user.preferred_genres || [],
+              preferred_artist_ids: updated_user.preferred_artist_ids || []
+            }
+          })
+
+        {:error, changeset} ->
+          conn
+          |> put_status(:bad_request)
+          |> json(%{success: false, errors: format_errors(changeset)})
+      end
+    end
+  end
 
   def update_nickname(conn, %{"nickname" => nickname}) do
-    # Проверка валидации запроса
     conn = authenticate_request(conn, [])
 
     if conn.halted do
@@ -315,10 +369,8 @@ defmodule MusicPlatformApiWeb.AuthController do
     else
       user = conn.assigns.current_user
 
-      # Отправка смены нака в auth
       case Auth.update_nickname(user, nickname) do
         {:ok, updated_user} ->
-          # Перевыпуск токена с изменённым параметром
           case Auth.generate_token(updated_user) do
             {:ok, new_token} ->
               json(conn, %{
@@ -338,19 +390,16 @@ defmodule MusicPlatformApiWeb.AuthController do
               |> json(%{error: "Ошибка генерации токена: #{reason}"})
           end
 
-        # Обработка строковых ошибок
         {:error, reason} when is_binary(reason) ->
           conn
           |> put_status(:unprocessable_entity)
           |> json(%{error: reason})
 
-        # Обработка ошибок Ecto
         {:error, %Ecto.Changeset{} = changeset} ->
           conn
           |> put_status(:unprocessable_entity)
           |> json(%{error: "Ошибка валидации", details: inspect(changeset.errors)})
 
-        # Обработка остальных ошибок
         {:error, reason} ->
           conn
           |> put_status(:bad_request)
@@ -359,7 +408,6 @@ defmodule MusicPlatformApiWeb.AuthController do
     end
   end
 
-  # Если передали что-то, что не ник
   def update_nickname(conn, _params) do
     return_error(conn, :bad_request, "Требуется ник")
   end
@@ -373,13 +421,11 @@ defmodule MusicPlatformApiWeb.AuthController do
       user = conn.assigns.current_user
       old_avatar = user.avatar
 
-      # Сохранения файла с аватаркой на сервере
       {:ok, url, _path} = MusicPlatformApi.Music.save_upload(upload, "avatars")
 
-      # Обновление параметра аватарки в БД
       case Auth.update_user(user, %{avatar: url}) do
         {:ok, updated_user} ->
-          MusicPlatformApi.Music.delete_file(old_avatar) # Удаление старой аватарки
+          MusicPlatformApi.Music.delete_file(old_avatar)
 
           json(conn, %{
             success: true,
@@ -394,38 +440,11 @@ defmodule MusicPlatformApiWeb.AuthController do
             }
           })
         {:error, changeset} ->
-          MusicPlatformApi.Music.delete_file(url) # Удаление новой аватарки
+          MusicPlatformApi.Music.delete_file(url)
           conn |> put_status(:bad_request) |> json(%{errors: format_errors(changeset)})
       end
     end
   end
-
-  # def reset_password(conn, %{"email" => email}) do
-  #   case Auth.get_user_by_email(email) do
-  #     nil ->
-  #       return_error(conn, :not_found, "Пользователь с таким email не найден")
-  #     user ->
-  #       new_password = PasswordUtils.generate_temporary_password()
-
-  #       case Auth.update_password(user, new_password) do
-  #         {:ok, _} ->
-  #           conn
-  #           |> put_status(:ok)
-  #           |> json(%{
-  #             success: true,
-  #             message: "Пароль сброшен успешно. Новый пароль отправлен на ваш email",
-  #             temporary_password: new_password
-  #           })
-
-  #         {:error, _} ->
-  #           return_error(conn, :internal_server_error, "Не удалось сбросить пароль")
-  #       end
-  #   end
-  # end
-
-  # def reset_password(conn, _params) do
-  #   return_error(conn, :bad_request, "Требуется email")
-  # end
 
   # Перевод ошибок из Ecto
   defp format_errors(changeset) do
