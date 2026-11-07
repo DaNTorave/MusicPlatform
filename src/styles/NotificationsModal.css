@@ -14,8 +14,18 @@
   flex-wrap: wrap;
 }
 
-.modal-window-top-button.active::after {
-    width: calc(50% - 140px);
+.notifications-modal-modal-window-top-button.notifications-modal-active::after {
+  width: calc(100% - 140px);
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  min-width: 30px;
+  max-width: 80%;
+  height: 3px;
+  background: #1773cf;
+  border-radius: 3px 3px 0 0;
 }
 
 .notifications-filter-group {
@@ -45,7 +55,7 @@
   color: #0f172a;
 }
 
-.notifications-filter-btn.active {
+.notifications-filter-btn.notifications-modal-active {
   background: #ffffff;
   color: #1773cf;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
@@ -145,21 +155,6 @@
   border-color: #cbd5e1;
 }
 
-.notification-card-item.unread {
-  background: #f8fafc;
-  border-left: 4px solid #1773cf;
-}
-
-.notification-card-item.type-approved.unread {
-  background: #f0fdf4;
-  border-left: 4px solid #16a34a;
-}
-
-.notification-card-item.type-rejected.unread {
-  background: #fff5f5;
-  border-left: 4px solid #dc2626;
-}
-
 /* Иконка типа */
 .notification-icon-wrapper {
   width: 40px;
@@ -172,19 +167,19 @@
   margin-top: 2px;
 }
 
-.notification-icon-wrapper.approved {
+.notification-icon-wrapper.notifications-modal-approved {
   background: #dcfce7;
   color: #15803d;
   border: 1px solid #bbf7d0;
 }
 
-.notification-icon-wrapper.rejected {
+.notification-icon-wrapper.notifications-modal-rejected {
   background: #fee2e2;
   color: #b91c1c;
   border: 1px solid #fecaca;
 }
 
-.notification-icon-wrapper.info {
+.notification-icon-wrapper.notifications-modal-info {
   background: #e0f2fe;
   color: #0369a1;
   border: 1px solid #bae6fd;
@@ -220,17 +215,17 @@
   letter-spacing: 0.4px;
 }
 
-.notification-badge-type.approved {
+.notification-badge-type.notifications-modal-approved {
   background: #dcfce7;
   color: #15803d;
 }
 
-.notification-badge-type.rejected {
+.notification-badge-type.notifications-modal-rejected {
   background: #fee2e2;
   color: #b91c1c;
 }
 
-.notification-badge-type.info {
+.notification-badge-type.notifications-modal-info {
   background: #e0f2fe;
   color: #0369a1;
 }
@@ -260,25 +255,6 @@
   overflow: hidden;
 }
 
-/* Причина отклонения в карточке */
-.notification-reason-preview {
-  margin-top: 6px;
-  padding: 6px 10px;
-  background: #fef2f2;
-  border: 1px solid #fecaca;
-  border-radius: 8px;
-  font-size: 0.8rem;
-  color: #991b1b;
-  display: flex;
-  align-items: flex-start;
-  gap: 6px;
-}
-
-.notification-reason-preview strong {
-  color: #7f1d1d;
-  flex-shrink: 0;
-}
-
 /* Маркер непрочитанного */
 .notification-unread-dot {
   width: 8px;
@@ -297,179 +273,225 @@
   background: #dc2626;
 }
 
-/* Детальная модалка просмотра уведомления */
-.notification-detail-window {
-  max-width: 540px;
-}
-
-.notification-detail-header-status {
+.notifications-modal-modal-background {
+  background: rgba(26, 25, 25, 0.65);
+  width: 100%;
+  height: 100%;
+  position: fixed;
+  left: 0;
+  top: 0;
   display: flex;
+  justify-content: center;
   align-items: center;
-  gap: 12px;
-  padding: 16px;
-  border-radius: 14px;
-  margin-bottom: 20px;
+  z-index: 1000;
+  backdrop-filter: blur(8px);
+  animation: notifications-modal-notifications-modal-fadeIn 0.3s ease;
 }
 
-.notification-detail-header-status.approved {
-  background: #f0fdf4;
-  border: 1px solid #bbf7d0;
-  color: #166534;
+.notifications-modal-modal-window {
+  display: flex;
+  flex-direction: column;
+  z-index: 1001;
+  width: 880px;
+  max-width: 90vw;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+  border-radius: 20px;
+  animation: notifications-modal-notifications-modal-slideUp 0.35s
+    cubic-bezier(0.34, 1.56, 0.64, 1);
+  position: relative;
+  transform: translateY(-40px);
 }
 
-.notification-detail-header-status.rejected {
-  background: #fef2f2;
-  border: 1px solid #fecaca;
-  color: #991b1b;
+.notifications-modal-modal-window-top-buttons {
+  display: flex;
+  z-index: 13;
+  gap: 2px;
+  padding: 4px 4px 0 4px;
+  background: #f0eaea;
+  border-radius: 20px 20px 0 0;
+  position: relative;
 }
 
-.notification-detail-header-status.info {
-  background: #f0f9ff;
-  border: 1px solid #bae6fd;
-  color: #075985;
+.notifications-modal-modal-window-top-button {
+  min-height: 52px;
+  flex: 1 1 auto;
+  font-weight: 700;
+  font-size: 1rem;
+  background: transparent;
+  border: none;
+  border-radius: 16px 16px 0 0;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  color: #555;
+  letter-spacing: 0.3px;
+  position: relative;
+  padding: 0 16px;
 }
 
-.notification-detail-status-icon {
+.notifications-modal-modal-window-top-button:hover {
+  background: rgba(255, 255, 255, 0.5);
+  color: #14161a;
+}
+
+.notifications-modal-modal-window-top-button.notifications-modal-active {
+  background: #fff6f6;
+  color: #14161a;
+  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.05);
+}
+
+.notifications-modal-modal-close-button {
+  position: absolute;
+  top: -14px;
+  right: -10px;
   width: 36px;
   height: 36px;
   border-radius: 50%;
+  border: none;
+  background: #14161a;
+  color: #f8efef;
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+  transition: all 0.25s ease;
   display: flex;
   align-items: center;
   justify-content: center;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+  z-index: 14;
+  padding: 0;
   flex-shrink: 0;
 }
 
-.notification-detail-header-status.approved .notification-detail-status-icon {
-  background: #22c55e;
-  color: #ffffff;
+.notifications-modal-modal-close-button:hover {
+  background: #2d3038;
+  transform: rotate(90deg) scale(1.1);
+  border-color: #2d3038;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
 }
 
-.notification-detail-header-status.rejected .notification-detail-status-icon {
-  background: #ef4444;
-  color: #ffffff;
+.notifications-modal-modal-close-button:active {
+  transform: rotate(90deg) scale(0.95);
 }
 
-.notification-detail-header-status.info .notification-detail-status-icon {
-  background: #0284c7;
-  color: #ffffff;
+.notifications-modal-modal-window-content {
+  min-width: 480px;
+  min-height: 340px;
+  padding: 32px 36px 36px 36px;
+  border-radius: 0 0 20px 20px;
+  background: #fff6f6;
+  z-index: 12;
 }
 
-.notification-detail-status-text h3 {
-  font-size: 1.15rem;
-  font-weight: 800;
-  margin: 0;
-  letter-spacing: -0.3px;
+@media (max-width: 560px) {
+  .notifications-modal-modal-window {
+    min-width: unset;
+
+    width: 92vw;
+  }
+
+  .notifications-modal-modal-window-content {
+    min-width: unset;
+
+    padding: 24px 20px 28px 20px;
+  }
+
+  .notifications-modal-modal-window-top-button {
+    font-size: 0.85rem;
+
+    min-height: 44px;
+
+    padding: 0 10px;
+  }
+
+  .notifications-modal-modal-close-button {
+    width: 30px;
+
+    height: 30px;
+
+    font-size: 17px;
+
+    top: -12px;
+
+    right: -8px;
+  }
 }
 
-.notification-detail-status-text p {
-  font-size: 0.82rem;
-  margin: 2px 0 0 0;
-  opacity: 0.85;
+@media (max-width: 400px) {
+  .notifications-modal-modal-window-content {
+    padding: 20px 16px 24px 16px;
+  }
+
+  .notifications-modal-modal-window-top-button {
+    font-size: 0.75rem;
+
+    min-height: 40px;
+  }
+
+  .notifications-modal-modal-close-button {
+    width: 26px;
+
+    height: 26px;
+
+    font-size: 14px;
+
+    top: -10px;
+
+    right: -6px;
+
+    border-width: 1.5px;
+  }
 }
 
-.notification-detail-body {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
+.notifications-modal-modal-close-button img {
+  width: 16px;
+  height: 16px;
+  display: block;
+  filter: brightness(0) invert(1);
 }
 
-.notification-detail-title {
-  font-size: 1.25rem;
-  font-weight: 800;
-  color: #0f172a;
-  margin: 0;
+.notification-status-svg-approved {
+  width: 18px;
+  height: 18px;
+  filter: invert(37%) sepia(85%) saturate(542%) hue-rotate(95deg)
+    brightness(95%) contrast(92%);
 }
 
-.notification-detail-message-box {
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
-  padding: 14px 16px;
-  border-radius: 12px;
-  font-size: 0.95rem;
-  line-height: 1.5;
-  color: #334155;
+.notification-status-svg-rejected {
+  width: 18px;
+  height: 18px;
+  filter: invert(24%) sepia(88%) saturate(3412%) hue-rotate(352deg)
+    brightness(92%) contrast(93%);
 }
 
-/* Блок причины отклонения */
-.notification-rejection-callout {
-  background: #fff5f5;
-  border: 1px solid #fca5a5;
-  border-radius: 12px;
-  padding: 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
+.notification-status-svg-info {
+  width: 18px;
+  height: 18px;
 }
 
-.notification-rejection-title {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 0.9rem;
-  font-weight: 800;
-  color: #991b1b;
-  text-transform: uppercase;
-  letter-spacing: 0.3px;
+@keyframes notifications-modal-fadeIn {
+  from {
+    opacity: 0;
+
+    backdrop-filter: blur(0px);
+  }
+
+  to {
+    opacity: 1;
+
+    backdrop-filter: blur(8px);
+  }
 }
 
-.notification-rejection-reason-text {
-  font-size: 0.95rem;
-  color: #7f1d1d;
-  line-height: 1.5;
-  background: #ffffff;
-  padding: 10px 12px;
-  border-radius: 8px;
-  border: 1px solid #fecaca;
-  font-weight: 600;
-}
+@keyframes notifications-modal-slideUp {
+  from {
+    opacity: 0;
 
-.notification-rejection-tips {
-  font-size: 0.82rem;
-  color: #64748b;
-  margin: 4px 0 0 0;
-  line-height: 1.4;
-}
+    transform: translateY(calc(-40px + 30px)) scale(0.95);
+  }
 
-/* Блок одобрения с информацией о релизе */
-.notification-approval-callout {
-  background: #f0fdf4;
-  border: 1px solid #86efac;
-  border-radius: 12px;
-  padding: 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
+  to {
+    opacity: 1;
 
-.notification-approval-title {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 0.9rem;
-  font-weight: 800;
-  color: #166534;
-  text-transform: uppercase;
-}
-
-.notification-approval-desc {
-  font-size: 0.92rem;
-  color: #14532d;
-  line-height: 1.45;
-  margin: 0;
-}
-
-.notification-detail-meta {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  font-size: 0.8rem;
-  color: #94a3b8;
-  padding-top: 8px;
-  border-top: 1px solid #f1f5f9;
-}
-
-.notification-detail-actions {
-  display: flex;
-  gap: 10px;
-  margin-top: 8px;
+    transform: translateY(-40px) scale(1);
+  }
 }

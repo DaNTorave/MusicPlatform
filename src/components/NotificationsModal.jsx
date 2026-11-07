@@ -7,7 +7,6 @@ import checkIcon from '../assets/check-circle.svg';
 import alertIcon from '../assets/alert-circle.svg';
 import bellIcon from '../assets/bell-icon.svg';
 
-import '../styles/AuthModal.css';
 import '../styles/NotificationsModal.css';
 
 export default function NotificationsModal({
@@ -136,20 +135,20 @@ export default function NotificationsModal({
 
   return (
     <div
-      className="modal-background"
+      className="notifications-modal-modal-background"
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
-      <div className="modal-window notifications-modal-window">
+      <div className="notifications-modal-modal-window notifications-modal-window">
         {/* Шапка единого модального окна */}
-        <div className="modal-window-top-buttons">
+        <div className="notifications-modal-modal-window-top-buttons">
           {activeView === 'list' ? (
-            <button className="modal-window-top-button active">
+            <button className="notifications-modal-modal-window-top-button notifications-modal-active">
               Уведомления {unreadCount > 0 && `(${unreadCount})`}
             </button>
           ) : (
             <button
               type="button"
-              className="modal-window-top-button active"
+              className="notifications-modal-modal-window-top-button notifications-modal-active"
             >
               Подробнее
             </button>
@@ -157,7 +156,7 @@ export default function NotificationsModal({
 
           <button
             type="button"
-            className="modal-close-button"
+            className="notifications-modal-modal-close-button"
             onClick={onClose}
             title="Закрыть"
           >
@@ -165,7 +164,7 @@ export default function NotificationsModal({
           </button>
         </div>
 
-        <div className="modal-window-content">
+        <div className="notifications-modal-modal-window-content">
           {/* РЕЖИМ 1: Список уведомлений */}
           {activeView === 'list' && (
             <>
@@ -175,7 +174,7 @@ export default function NotificationsModal({
                   <button
                     type="button"
                     className={`notifications-filter-btn ${
-                      filter === 'all' ? 'active' : ''
+                      filter === 'all' ? 'notifications-modal-active' : ''
                     }`}
                     onClick={() => setFilter('all')}
                   >
@@ -184,7 +183,7 @@ export default function NotificationsModal({
                   <button
                     type="button"
                     className={`notifications-filter-btn ${
-                      filter === 'unread' ? 'active' : ''
+                      filter === 'unread' ? 'notifications-modal-active' : ''
                     }`}
                     onClick={() => setFilter('unread')}
                   >
@@ -264,40 +263,18 @@ export default function NotificationsModal({
                         <div
                           className={`notification-icon-wrapper ${
                             isApproved
-                              ? 'approved'
+                              ? 'notifications-modal-approved'
                               : isRejected
-                                ? 'rejected'
-                                : 'info'
+                                ? 'notifications-modal-rejected'
+                                : 'notifications-modal-info'
                           }`}
                         >
                           {isApproved ? (
-                            <img
-                              src={checkIcon}
-                              alt="Одобрено"
-                              style={{
-                                width: '18px',
-                                height: '18px',
-                                filter:
-                                  'invert(37%) sepia(85%) saturate(542%) hue-rotate(95deg) brightness(95%) contrast(92%)',
-                              }}
-                            />
+                            <img src={checkIcon} alt="Одобрено" className="notification-status-svg-approved" />
                           ) : isRejected ? (
-                            <img
-                              src={alertIcon}
-                              alt="Отклонено"
-                              style={{
-                                width: '18px',
-                                height: '18px',
-                                filter:
-                                  'invert(24%) sepia(88%) saturate(3412%) hue-rotate(352deg) brightness(92%) contrast(93%)',
-                              }}
-                            />
+                            <img src={alertIcon} alt="Отклонено" className="notification-status-svg-rejected" />
                           ) : (
-                            <img
-                              src={bellIcon}
-                              alt="Инфо"
-                              style={{ width: '18px', height: '18px' }}
-                            />
+                            <img src={bellIcon} alt="Инфо" className="notification-status-svg-info" />
                           )}
                         </div>
 
@@ -307,10 +284,10 @@ export default function NotificationsModal({
                             <span
                               className={`notification-badge-type ${
                                 isApproved
-                                  ? 'approved'
+                                  ? 'notifications-modal-approved'
                                   : isRejected
-                                    ? 'rejected'
-                                    : 'info'
+                                    ? 'notifications-modal-rejected'
+                                    : 'notifications-modal-info'
                               }`}
                             >
                               {isApproved

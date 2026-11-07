@@ -8,7 +8,8 @@ import InputField from '../components/InputField';
 import Button from '../components/Button';
 
 import favoriteIcon from '../assets/favorite.svg';
-import '../styles/ArtistPage.css';
+
+import '../styles/FavoritesPage.css';
 
 export default function FavoritesPage() {
   const [tracks, setTracks] = useState([]);
@@ -54,32 +55,22 @@ export default function FavoritesPage() {
   });
 
   return (
-    <div className="artist-page">
-      <div className="artist-header">
-        <div
-          style={{
-            width: '120px',
-            height: '120px',
-            borderRadius: '20px',
-            background: '#fee2e2',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
-        >
-          <img src={favoriteIcon} alt="fav" style={{ width: '60px', height: '60px' }} />
+    <div className="favorites-page-artist-page">
+      <div className="favorites-page-artist-header">
+        <div className="favorites-header-icon-box">
+          <img src={favoriteIcon} alt="fav" className="favorites-header-icon-img" />
         </div>
-        <div className="artist-info">
-          <span className="artist-tag" style={{ background: '#fee2e2', color: '#dc2626' }}>
+        <div className="favorites-page-artist-info">
+          <span className="favorites-page-artist-tag favorites-header-tag">
             Вам понравилось
           </span>
-          <h1 className="artist-title">Избранные треки</h1>
-          <p className="artist-meta-string">Всего треков: {tracks.length}</p>
+          <h1 className="favorites-page-artist-title">Избранные треки</h1>
+          <p className="favorites-page-artist-meta-string">Всего треков: {tracks.length}</p>
         </div>
       </div>
 
-      <div className="content-search" style={{ marginBottom: '1rem' }}>
-        <div className="search-bar-wrapper">
+      <div className="favorites-page-content-search favorites-search-block">
+        <div className="favorites-page-search-bar-wrapper">
           <InputField
             type="text"
             placeholder="Поиск по вашему избранному..."
@@ -91,20 +82,20 @@ export default function FavoritesPage() {
         </div>
       </div>
 
-      <div className="artist-section">
-        <div className="all-tracks-action">
+      <div className="favorites-page-artist-section">
+        <div className="favorites-page-all-tracks-action">
           <h2>Список всех треков</h2>
           <button onClick={() => navigate(-1)}>&lt; Назад</button>
         </div>
 
         {loading ? (
-          <p className="empty-text">Загрузка треков...</p>
+          <p className="favorites-page-empty-text">Загрузка треков...</p>
         ) : filteredTracks.length === 0 ? (
-          <p className="empty-text">
+          <p className="favorites-page-empty-text">
             {searchQuery ? 'Треки по запросу не найдены' : 'Список избранного пуст'}
           </p>
         ) : (
-          <div className="album-tracks-container">
+          <div className="favorites-page-album-tracks-container">
             {filteredTracks.map((track, idx) => (
               <TrackRow
                 key={track.id}

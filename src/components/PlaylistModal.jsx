@@ -7,8 +7,8 @@ import ImageCropModal from './ImageCropModal';
 import defaultCover from '../assets/Шотландская веслоухая.jpg';
 import closeIcon from '../assets/close-icon.svg';
 
-import '../styles/AuthModal.css';
-import '../styles/Playlists.css';
+import '../styles/PlaylistModal.css';
+
 
 export function PlaylistFormContent({
   playlist = null,
@@ -108,17 +108,17 @@ export function PlaylistFormContent({
         onCropComplete={handleCropComplete}
       />
 
-      <form className="auth-form" onSubmit={handleSubmit}>
-        {errorMsg && <div className="auth-error-global">{errorMsg}</div>}
+      <form className="playlist-modal-auth-form" onSubmit={handleSubmit}>
+        {errorMsg && <div className="playlist-modal-auth-error-global">{errorMsg}</div>}
 
-        <div className="avatar-preview-container">
-          <div className="avatar-preview-wrapper playlist-cover-preview-box">
+        <div className="playlist-modal-avatar-preview-container">
+          <div className="playlist-modal-avatar-preview-wrapper playlist-cover-preview-box">
             <img
               src={coverPreview || defaultCover}
               alt="Обложка плейлиста"
-              className="avatar-preview-image"
+              className="playlist-modal-avatar-preview-image"
             />
-            <label className="avatar-preview-badge">
+            <label className="playlist-modal-avatar-preview-badge">
               <input
                 ref={fileInputRef}
                 type="file"
@@ -131,7 +131,7 @@ export function PlaylistFormContent({
           </div>
         </div>
 
-        <div className="auth-form-group">
+        <div className="playlist-modal-auth-form-group">
           <label>Название плейлиста *</label>
           <input
             type="text"
@@ -168,7 +168,7 @@ export function PlaylistFormContent({
           </label>
         </div>
 
-        <div className="modal-actions-row">
+        <div className="playlist-modal-modal-actions-row">
           {onCancel && (
             <Button
               type="button"
@@ -213,17 +213,17 @@ export default function PlaylistModal({
 
   return (
     <div
-      className="modal-background"
+      className="playlist-modal-modal-background"
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
-      <div className="modal-window" style={{ maxWidth: '500px' }}>
-        <div className="modal-window-top-buttons">
-          <button type="button" className="modal-window-top-button active">
+      <div className="playlist-modal-modal-window playlist-modal-window">
+        <div className="playlist-modal-modal-window-top-buttons">
+          <button type="button" className="playlist-modal-modal-window-top-button playlist-modal-active">
             {isEditMode ? 'Редактирование плейлиста' : 'Новый плейлист'}
           </button>
           <button
             type="button"
-            className="modal-close-button"
+            className="playlist-modal-modal-close-button"
             onClick={onClose}
             title="Закрыть"
           >
@@ -231,7 +231,7 @@ export default function PlaylistModal({
           </button>
         </div>
 
-        <div className="modal-window-content">
+        <div className="playlist-modal-modal-window-content">
           <PlaylistFormContent
             playlist={playlist}
             onCancel={onClose}

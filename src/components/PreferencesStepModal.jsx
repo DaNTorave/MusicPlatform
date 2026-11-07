@@ -8,8 +8,8 @@ import defaultAvatar from '../assets/Шотландская веслоухая.j
 import searchIcon from '../assets/search-icon.svg';
 import closeIcon from '../assets/close-icon.svg';
 
-import '../styles/AuthModal.css';
-import '../styles/PreferencesModal.css';
+import '../styles/PreferencesStepModal.css';
+
 
 export function PreferencesFormContent({
   initialGenres = [],
@@ -108,15 +108,15 @@ export function PreferencesFormContent({
   }, [genres, genreSearch]);
 
   if (loading) {
-    return <p className="status-message">Загрузка данных...</p>;
+    return <p className="preferences-step-modal-status-message">Загрузка данных...</p>;
   }
 
   return (
     <div className="preferences-step-flow">
       {step === 1 && (
         <div className="preferences-step">
-          <h2 className="auth-form-title">Выберите любимые жанры</h2>
-          <p className="auth-form-subtitle">
+          <h2 className="preferences-step-modal-auth-form-title">Выберите любимые жанры</h2>
+          <p className="preferences-step-modal-auth-form-subtitle">
             Шаг 1 из 2. Выбор жанров необязателен. Нажмите «Далее» для продолжения.
           </p>
 
@@ -137,7 +137,7 @@ export function PreferencesFormContent({
                 <button
                   key={g.key}
                   type="button"
-                  className={`genre-chip-btn ${isSelected ? 'active' : ''}`}
+                  className={`preferences-step-modal-genre-chip-btn ${isSelected ? 'preferences-step-modal-active' : ''}`}
                   onClick={() => handleToggleGenre(g.key)}
                 >
                   {g.title_ru}
@@ -146,7 +146,7 @@ export function PreferencesFormContent({
             })}
           </div>
 
-          <div className="modal-actions-row">
+          <div className="preferences-step-modal-modal-actions-row">
             {onCancel && (
               <Button type="button" variant="secondary" onClick={onCancel}>
                 Отмена
@@ -165,12 +165,12 @@ export function PreferencesFormContent({
 
       {step === 2 && (
         <div className="preferences-step">
-          <h2 className="auth-form-title">
+          <h2 className="preferences-step-modal-auth-form-title">
             {selectedGenres.length > 0
               ? 'Выберите исполнителей'
               : 'Популярные исполнители'}
           </h2>
-          <p className="auth-form-subtitle">
+          <p className="preferences-step-modal-auth-form-subtitle">
             {selectedGenres.length > 0
               ? 'Исполнители, работающие в выбранных жанрах (необязательно)'
               : 'Жанры не выбраны. Показаны популярные исполнители (необязательно)'}
@@ -188,7 +188,7 @@ export function PreferencesFormContent({
 
           <div className="preferences-artists-grid">
             {candidateArtists.length === 0 ? (
-              <p className="empty-text">Исполнители не найдены</p>
+              <p className="preferences-step-modal-empty-text">Исполнители не найдены</p>
             ) : (
               candidateArtists.map((artist) => {
                 const isSelected = selectedArtistIds.includes(artist.id);
@@ -212,7 +212,7 @@ export function PreferencesFormContent({
             )}
           </div>
 
-          <div className="modal-actions-row">
+          <div className="preferences-step-modal-modal-actions-row">
             <Button
               type="button"
               variant="secondary"
@@ -246,17 +246,17 @@ export default function PreferencesStepModal({
 
   return (
     <div
-      className="modal-background"
+      className="preferences-step-modal-modal-background"
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
-      <div className="modal-window" style={{ maxWidth: '540px' }}>
-        <div className="modal-window-top-buttons">
-          <button type="button" className="modal-window-top-button active">
+      <div className="preferences-step-modal-modal-window preferences-step-modal-window">
+        <div className="preferences-step-modal-modal-window-top-buttons">
+          <button type="button" className="preferences-step-modal-modal-window-top-button preferences-step-modal-active">
             Настройка предпочтений
           </button>
           <button
             type="button"
-            className="modal-close-button"
+            className="preferences-step-modal-modal-close-button"
             onClick={onClose}
             title="Закрыть"
           >
@@ -264,7 +264,7 @@ export default function PreferencesStepModal({
           </button>
         </div>
 
-        <div className="modal-window-content">
+        <div className="preferences-step-modal-modal-window-content">
           <PreferencesFormContent
             initialGenres={initialGenres}
             initialArtistIds={initialArtistIds}

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-
 import close_icon from '../assets/close-icon.svg';
+import '../styles/CollaboratorsManager.css';
+
 
 export default function CollaboratorsManager({
   mainArtist,
@@ -46,17 +47,17 @@ export default function CollaboratorsManager({
   };
 
   return (
-    <div className="meta-box-card">
-      <div className="meta-box-header">
-        <span className="meta-box-title">Авторы и соавторы</span>
+    <div className="collaborators-manager-meta-box-card">
+      <div className="collaborators-manager-meta-box-header">
+        <span className="collaborators-manager-meta-box-title">Авторы и соавторы</span>
       </div>
 
       {/* Поиск артистов для добавления в соавторы */}
       {!disabled && (
-        <div className="collab-search-container">
+        <div className="collaborators-manager-collab-search-container">
           <input
             type="text"
-            className="input-element collab-search-input"
+            className="collaborators-manager-input-element collaborators-manager-collab-search-input"
             placeholder="Поиск артиста для добавления в соавторы..."
             value={searchQuery}
             onFocus={() => setIsDropdownOpen(true)}
@@ -67,21 +68,21 @@ export default function CollaboratorsManager({
           />
 
           {isDropdownOpen && searchQuery.trim() && (
-            <div className="collab-dropdown-menu">
+            <div className="collaborators-manager-collab-dropdown-menu">
               {filteredSuggestions.length === 0 ? (
-                <div className="collab-dropdown-item collab-dropdown-empty">
+                <div className="collaborators-manager-collab-dropdown-item collaborators-manager-collab-dropdown-empty">
                   Артист не найден
                 </div>
               ) : (
                 filteredSuggestions.map((artist) => (
                   <div
                     key={artist.id}
-                    className="entity-dropdown-item"
+                    className="collaborators-manager-entity-dropdown-item"
                     onClick={() => handleAddCollaborator(artist.id)}
                   >
                     <span>+ {artist.name}</span>
                     {artist.genre && (
-                      <span className="entity-genre-text">{artist.genre}</span>
+                      <span className="collaborators-manager-entity-genre-text">{artist.genre}</span>
                     )}
                   </div>
                 ))
@@ -94,12 +95,12 @@ export default function CollaboratorsManager({
       <div className="collab-list">
         {/* Основной артист всегда первый в списке */}
         {mainArtist && (
-          <div className="entity-card-row is-main">
-            <div className="entity-card-left">
+          <div className="collaborators-manager-entity-card-row is-main">
+            <div className="collaborators-manager-entity-card-left">
               <span className="entity-order-index">#1</span>
-              <span className="entity-name-text">{mainArtist.name}</span>
+              <span className="collaborators-manager-entity-name-text">{mainArtist.name}</span>
             </div>
-            <span className="entity-badge main-badge">Основной</span>
+            <span className="collaborators-manager-entity-badge main-badge">Основной</span>
           </div>
         )}
 
@@ -111,20 +112,20 @@ export default function CollaboratorsManager({
           if (!artist) return null;
 
           return (
-            <div key={artist.id} className="entity-card-row">
-              <div className="entity-card-left">
+            <div key={artist.id} className="collaborators-manager-entity-card-row">
+              <div className="collaborators-manager-entity-card-left">
                 <span className="entity-order-index">#{idx + 2}</span>
-                <span className="entity-name-text">{artist.name}</span>
+                <span className="collaborators-manager-entity-name-text">{artist.name}</span>
                 {artist.genre && (
-                  <span className="entity-genre-text">({artist.genre})</span>
+                  <span className="collaborators-manager-entity-genre-text">({artist.genre})</span>
                 )}
               </div>
 
               {!disabled && (
-                <div className="entity-card-actions">
+                <div className="collaborators-manager-entity-card-actions">
                   <button
                     type="button"
-                    className="entity-icon-btn"
+                    className="collaborators-manager-entity-icon-btn"
                     disabled={idx === 0}
                     onClick={() => handleMove(idx, -1)}
                     title="Выше"
@@ -133,7 +134,7 @@ export default function CollaboratorsManager({
                   </button>
                   <button
                     type="button"
-                    className="entity-icon-btn"
+                    className="collaborators-manager-entity-icon-btn"
                     disabled={idx === collaboratorIds.length - 1}
                     onClick={() => handleMove(idx, 1)}
                     title="Ниже"
@@ -142,7 +143,7 @@ export default function CollaboratorsManager({
                   </button>
                   <button
                     type="button"
-                    className="entity-icon-btn remove-btn"
+                    className="collaborators-manager-entity-icon-btn collaborators-manager-remove-btn"
                     onClick={() => handleRemoveCollaborator(artist.id)}
                     title="Удалить"
                   >

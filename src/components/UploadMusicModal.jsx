@@ -10,9 +10,9 @@ import OriginalTrackManager from './OriginalTrackManager';
 import AgeRestrictionToggle from './AgeRestrictionToggle';
 import ImageCropModal from './ImageCropModal';
 
-import '../styles/Modal.css';
+import '../styles/UploadMusicModal.css';
 
-// Создание пустого слота трека для альбома
+
 const createEmptyTrack = (releaseYear = '') => ({
   title: '',
   audio: null,
@@ -471,17 +471,17 @@ export default function UploadMusicModal({
         onCropComplete={handleCropComplete}
       />
 
-      <form className="auth-form" onSubmit={handleSubmit}>
+      <form className="upload-music-modal-auth-form" onSubmit={handleSubmit}>
         {initialArtistName && (
-          <p className="auth-form-subtitle">
+          <p className="upload-music-modal-auth-form-subtitle">
             Основной исполнитель: <strong>{initialArtistName}</strong>
           </p>
         )}
 
-        {errorMsg && <div className="auth-error-global">{errorMsg}</div>}
-        {successMsg && <div className="auth-success-global">{successMsg}</div>}
+        {errorMsg && <div className="upload-music-modal-auth-error-global">{errorMsg}</div>}
+        {successMsg && <div className="upload-music-modal-auth-success-global">{successMsg}</div>}
 
-        <div className="auth-form-group">
+        <div className="upload-music-modal-auth-form-group">
           <label>
             {uploadType === 'artist' ? 'Имя исполнителя' : 'Название релиза'} *
           </label>
@@ -498,7 +498,7 @@ export default function UploadMusicModal({
         </div>
 
         {uploadType !== 'artist' && (
-          <div className="auth-form-group">
+          <div className="upload-music-modal-auth-form-group">
             <label>Год выпуска</label>
             <input
               type="number"
@@ -511,7 +511,7 @@ export default function UploadMusicModal({
         )}
 
         {uploadType === 'artist' && (
-          <div className="auth-form-group">
+          <div className="upload-music-modal-auth-form-group">
             <label>Основной жанр *</label>
             <input
               type="text"
@@ -525,14 +525,14 @@ export default function UploadMusicModal({
         )}
 
         {uploadType !== 'artist' && !initialArtistId && (
-          <div className="auth-form-group">
+          <div className="upload-music-modal-auth-form-group">
             <label>Основной исполнитель *</label>
             <select
               value={artistId}
               onChange={(e) => setArtistId(e.target.value)}
               required
               disabled={loading}
-              className="input-element upload-select"
+              className="upload-music-modal-input-element upload-select"
             >
               <option value="">Выберите артиста...</option>
               {availableArtists.map((a) => (
@@ -555,9 +555,9 @@ export default function UploadMusicModal({
         )}
 
         {uploadType === 'single' && (
-          <div className="meta-box-card">
-            <div className="meta-box-header">
-              <label className="meta-switch-label">
+          <div className="upload-music-modal-meta-box-card">
+            <div className="upload-music-modal-meta-box-header">
+              <label className="upload-music-modal-meta-switch-label">
                 <input
                   type="checkbox"
                   checked={isCover}
@@ -590,7 +590,7 @@ export default function UploadMusicModal({
           />
         )}
 
-        <div className="auth-form-group">
+        <div className="upload-music-modal-auth-form-group">
           <label>
             {uploadType === 'artist' ? 'Аватар (обложка)' : 'Обложка релиза'}
           </label>
@@ -599,7 +599,7 @@ export default function UploadMusicModal({
               <img
                 src={coverPreview}
                 alt="Превью обложки"
-                className={`upload-cover-preview ${uploadType === 'artist' ? 'circle' : ''}`}
+                className={`upload-cover-preview ${uploadType === 'artist' ? 'upload-music-modal-circle' : ''}`}
               />
             </div>
           )}
@@ -612,7 +612,7 @@ export default function UploadMusicModal({
         </div>
 
         {uploadType === 'single' && (
-          <div className="auth-form-group">
+          <div className="upload-music-modal-auth-form-group">
             <label>Аудиозапись *</label>
             <div
               className={`dropzone-box ${isDraggingOver ? 'dragover' : ''}`}
@@ -654,14 +654,14 @@ export default function UploadMusicModal({
         )}
 
         {uploadType === 'album' && (
-          <div className="auth-form-group">
-            <div className="track-list-header">
+          <div className="upload-music-modal-auth-form-group">
+            <div className="upload-music-modal-track-list-header">
               <label>Список треков альбома ({albumTracks.length} шт.):</label>
               <div className="track-list-actions">
                 {albumTracks.length > 0 && (
                   <button
                     type="button"
-                    className="track-list-add-btn track-list-clear-btn"
+                    className="upload-music-modal-track-list-add-btn track-list-clear-btn"
                     onClick={() =>
                       setAlbumTracks([createEmptyTrack(releaseYear || '')])
                     }
@@ -671,7 +671,7 @@ export default function UploadMusicModal({
                 )}
                 <button
                   type="button"
-                  className="track-list-add-btn"
+                  className="upload-music-modal-track-list-add-btn"
                   onClick={handleAddTrackSlot}
                 >
                   + Добавить слот
@@ -708,7 +708,7 @@ export default function UploadMusicModal({
               />
             </div>
 
-            <div className="scrollable-track-list">
+            <div className="upload-music-modal-scrollable-track-list">
               {albumTracks.map((track, i) => (
                 <TrackSlotItem
                   key={i}

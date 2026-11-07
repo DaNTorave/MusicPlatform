@@ -223,7 +223,7 @@ export default function ArtistPage() {
   }
 
   if (error) {
-    return <div className="artist-page-state error">{error}</div>;
+    return <div className="artist-page-state artist-page-error">{error}</div>;
   }
 
   if (!data || !data.artist) {
@@ -233,7 +233,7 @@ export default function ArtistPage() {
   const { artist, albums = [], singles = [] } = data;
 
   return (
-    <div className="artist-page">
+    <div className="artist-page-artist-page">
       <UploadMusicModal
         isOpen={isUploadModalOpen}
         onClose={() => setIsUploadModalOpen(false)}
@@ -250,17 +250,17 @@ export default function ArtistPage() {
         onSuccess={fetchArtist}
       />
 
-      <div className="artist-header">
+      <div className="artist-page-artist-header">
         <img
           src={artist.avatar || defaultCover}
           alt={artist.name}
           className="artist-avatar"
         />
-        <div className="artist-info">
-          <span className="artist-tag">Исполнитель</span>
-          <h1 className="artist-title">{artist.name}</h1>
-          <div className="artist-meta">
-            <p className="artist-meta-string">
+        <div className="artist-page-artist-info">
+          <span className="artist-page-artist-tag">Исполнитель</span>
+          <h1 className="artist-page-artist-title">{artist.name}</h1>
+          <div className="artist-page-artist-meta">
+            <p className="artist-page-artist-meta-string">
               Жанр: {
                 (Array.isArray(artist.genres) && artist.genres.length > 0
                   ? artist.genres
@@ -270,10 +270,10 @@ export default function ArtistPage() {
                   .join(', ')
               }
             </p>
-            <p className="artist-meta-string">
+            <p className="artist-page-artist-meta-string">
               Прослушиваний: {artist.plays_count || 0}
             </p>
-            <p className="artist-meta-string">
+            <p className="artist-page-artist-meta-string">
               Лайков: {artist.likes_count || 0}
             </p>
           </div>
@@ -313,8 +313,8 @@ export default function ArtistPage() {
       </div>
 
       {/* Поиск по трекам и альбомам артиста */}
-      <div className="content-search" ref={searchContainerRef}>
-        <div className="search-bar-wrapper artist-bar-wrapper">
+      <div className="artist-page-content-search" ref={searchContainerRef}>
+        <div className="artist-page-search-bar-wrapper artist-bar-wrapper">
           <InputField
             type="text"
             placeholder="Поиск по трекам и альбомам..."
@@ -348,12 +348,12 @@ export default function ArtistPage() {
 
           {isSearchFocused && debouncedQuery.trim() && (
             <div
-              className="search-dropdown-menu"
+              className="artist-page-search-dropdown-menu"
               onMouseDown={(e) => e.stopPropagation()}
             >
               {searchResults.tracks.length === 0 &&
               searchResults.albums.length === 0 ? (
-                <div className="search-dropdown-empty">
+                <div className="artist-page-search-dropdown-empty">
                   Ничего не найдено по запросу «
                   <strong>{debouncedQuery}</strong>»
                 </div>
@@ -361,14 +361,14 @@ export default function ArtistPage() {
                 <>
                   {/* Результаты по трекам */}
                   {searchResults.tracks.length > 0 && (
-                    <div className="search-category-group">
-                      <div className="search-category-header">
+                    <div className="artist-page-search-category-group">
+                      <div className="artist-page-search-category-header">
                         <span>Треки</span>
-                        <span className="search-category-count">
+                        <span className="artist-page-search-category-count">
                           {searchResults.tracks.length}
                         </span>
                       </div>
-                      <div className="search-category-items">
+                      <div className="artist-page-search-category-items">
                         {searchResults.tracks.map((track) => {
                           const isCurrentPlaying =
                             currentTrack &&
@@ -378,34 +378,34 @@ export default function ArtistPage() {
                           return (
                             <div
                               key={`track-${track.id}`}
-                              className={`search-item-track ${isCurrentPlaying ? 'is-playing' : ''}`}
+                              className={`artist-page-search-item-track ${isCurrentPlaying ? 'artist-page-is-playing' : ''}`}
                               onClick={() => {
                                 playTrack(track, searchResults.tracks);
                                 setIsSearchFocused(false);
                               }}
                             >
-                              <div className="search-track-cover-wrapper">
+                              <div className="artist-page-search-track-cover-wrapper">
                                 <img
                                   src={track.cover || defaultCover}
                                   alt={track.title}
-                                  className="search-track-cover"
+                                  className="artist-page-search-track-cover"
                                 />
-                                <div className="search-track-play-overlay">
+                                <div className="artist-page-search-track-play-overlay">
                                   <img src={playIcon} alt="play" />
                                 </div>
                               </div>
-                              <div className="search-track-info">
-                                <div className="search-track-title-row">
-                                  <span className="search-track-title">
+                              <div className="artist-page-search-track-info">
+                                <div className="artist-page-search-track-title-row">
+                                  <span className="artist-page-search-track-title">
                                     {track.title}
                                   </span>
                                   {track.is_cover && (
-                                    <span className="search-track-cover-tag">
+                                    <span className="artist-page-search-track-cover-tag">
                                       кавер
                                     </span>
                                   )}
                                 </div>
-                                <span className="search-track-artist">
+                                <span className="artist-page-search-track-artist">
                                   {track.albumTitle
                                     ? `Альбом: ${track.albumTitle}`
                                     : 'Сингл'}
@@ -420,18 +420,18 @@ export default function ArtistPage() {
 
                   {/* Результаты по альбомам */}
                   {searchResults.albums.length > 0 && (
-                    <div className="search-category-group">
-                      <div className="search-category-header">
+                    <div className="artist-page-search-category-group">
+                      <div className="artist-page-search-category-header">
                         <span>Альбомы</span>
-                        <span className="search-category-count">
+                        <span className="artist-page-search-category-count">
                           {searchResults.albums.length}
                         </span>
                       </div>
-                      <div className="search-category-items">
+                      <div className="artist-page-search-category-items">
                         {searchResults.albums.map((album) => (
                           <div
                             key={`album-${album.id}`}
-                            className="search-item-artist"
+                            className="artist-page-search-item-artist"
                             onClick={() => {
                               setIsSearchFocused(false);
                               navigate(`/albums/${album.id}`);
@@ -440,17 +440,17 @@ export default function ArtistPage() {
                             <img
                               src={album.cover || artist.avatar || defaultCover}
                               alt={album.title}
-                              className="search-artist-avatar search-album-avatar"
+                              className="artist-page-search-artist-avatar search-album-avatar"
                             />
-                            <div className="search-artist-info">
-                              <span className="search-artist-name">
+                            <div className="artist-page-search-artist-info">
+                              <span className="artist-page-search-artist-name">
                                 {album.title}
                               </span>
-                              <span className="search-artist-genre">
+                              <span className="artist-page-search-artist-genre">
                                 {album.release_year || 'Альбом'}
                               </span>
                             </div>
-                            <span className="search-badge">Альбом</span>
+                            <span className="artist-page-search-badge">Альбом</span>
                           </div>
                         ))}
                       </div>
@@ -468,15 +468,15 @@ export default function ArtistPage() {
         <Route
           path="tracks"
           element={
-            <div className="artist-section">
-              <div className="all-tracks-action">
+            <div className="artist-page-artist-section">
+              <div className="artist-page-all-tracks-action">
                 <h2>Все треки исполнителя</h2>
                 <button onClick={() => navigate(-1)}>&lt; Назад</button>
               </div>
               {popularTracks.length === 0 ? (
-                <p className="empty-text">Нет доступных треков</p>
+                <p className="artist-page-empty-text">Нет доступных треков</p>
               ) : (
-                <div className="album-tracks-container">
+                <div className="artist-page-album-tracks-container">
                   {popularTracks.map((track, idx) => (
                     <TrackRow
                       key={track.id}
@@ -502,8 +502,8 @@ export default function ArtistPage() {
           path=""
           element={
             <>
-              <div className="artist-section">
-                <div className="all-tracks-action">
+              <div className="artist-page-artist-section">
+                <div className="artist-page-all-tracks-action">
                   <h2>Популярные треки</h2>
                   <button
                     onClick={() => navigate(`/artists/${artist.id}/tracks`)}
@@ -512,9 +512,9 @@ export default function ArtistPage() {
                   </button>
                 </div>
                 {popularTracks.length === 0 ? (
-                  <p className="empty-text">Нет доступных треков</p>
+                  <p className="artist-page-empty-text">Нет доступных треков</p>
                 ) : (
-                  <div className="album-tracks-container scrollable-chart-list">
+                  <div className="artist-page-album-tracks-container artist-page-scrollable-chart-list">
                     {popularTracks.slice(0, 12).map((track, idx) => (
                       <TrackRow
                         key={track.id}
@@ -535,26 +535,26 @@ export default function ArtistPage() {
               </div>
 
               {/* Секция синглов */}
-              <div className="artist-section">
+              <div className="artist-page-artist-section">
                 <h2>Синглы</h2>
                 {singles.length === 0 ? (
-                  <p className="empty-text">Нет доступных синглов</p>
+                  <p className="artist-page-empty-text">Нет доступных синглов</p>
                 ) : (
-                  <div className="media-cards-grid">
+                  <div className="artist-page-media-cards-grid">
                     {singles.map((track) => {
                       const isCurrentPlaying =
                         currentTrack?.id === track.id && isPlaying;
                       return (
-                        <div key={track.id} className="media-card single-card">
-                          <div className="media-card-cover-wrapper">
+                        <div key={track.id} className="artist-page-media-card single-card">
+                          <div className="artist-page-media-card-cover-wrapper">
                             <img
                               src={track.cover || artist.avatar || defaultCover}
                               alt={track.title}
-                              className="media-card-cover"
+                              className="artist-page-media-card-cover"
                             />
                             <button
                               type="button"
-                              className={`media-card-play-btn ${isCurrentPlaying ? 'visible' : ''}`}
+                              className={`artist-page-media-card-play-btn ${isCurrentPlaying ? 'artist-page-visible' : ''}`}
                               onClick={() =>
                                 playTrack({
                                   ...track,
@@ -567,33 +567,33 @@ export default function ArtistPage() {
                               <img
                                 src={isCurrentPlaying ? pauseIcon : playIcon}
                                 alt="Play/Pause"
-                                className="player-main-icon"
+                                className="artist-page-player-main-icon"
                               />
                             </button>
                           </div>
 
-                          <div className="media-card-info">
+                          <div className="artist-page-media-card-info">
                             <span
-                              className="media-card-title"
+                              className="artist-page-media-card-title"
                               title={track.title}
                             >
                               {track.title}
                             </span>
                             {track.age_restriction && <AgeBadge size="small" />}
-                            <span className="media-card-subtitle">Сингл</span>
-                            <span className="media-card-subtitle">
+                            <span className="artist-page-media-card-subtitle">Сингл</span>
+                            <span className="artist-page-media-card-subtitle">
                               {track.release_year}
                             </span>
                           </div>
 
                           {isStaff && (
                             <div
-                              className="card-staff-controls"
+                              className="artist-page-card-staff-controls"
                               onClick={(e) => e.stopPropagation()}
                             >
                               <button
                                 type="button"
-                                className="staff-btn edit"
+                                className="artist-page-staff-btn artist-page-edit"
                                 onClick={() =>
                                   setEditModal({
                                     isOpen: true,
@@ -611,7 +611,7 @@ export default function ArtistPage() {
                               </button>
                               <button
                                 type="button"
-                                className="staff-btn delete"
+                                className="artist-page-staff-btn artist-page-delete"
                                 onClick={(e) => handleDeleteTrack(e, track.id)}
                                 title="Удалить сингл"
                               >
@@ -631,12 +631,12 @@ export default function ArtistPage() {
               </div>
 
               {/* Секция альбомов */}
-              <div className="artist-section">
+              <div className="artist-page-artist-section">
                 <h2>Альбомы</h2>
                 {albums.length === 0 ? (
-                  <p className="empty-text">Нет доступных альбомов</p>
+                  <p className="artist-page-empty-text">Нет доступных альбомов</p>
                 ) : (
-                  <div className="media-cards-grid">
+                  <div className="artist-page-media-cards-grid">
                     {albums.map((album) => {
                       const albumTrackIds = (album.tracks || []).map((t) =>
                         String(t.id),
@@ -649,18 +649,18 @@ export default function ArtistPage() {
                       return (
                         <div
                           key={album.id}
-                          className="media-card album-card-grid"
+                          className="artist-page-media-card album-card-grid"
                           onClick={() => navigate(`/albums/${album.id}`)}
                         >
-                          <div className="media-card-cover-wrapper">
+                          <div className="artist-page-media-card-cover-wrapper">
                             <img
                               src={album.cover || defaultCover}
                               alt={album.title}
-                              className="media-card-cover"
+                              className="artist-page-media-card-cover"
                             />
                             <button
                               type="button"
-                              className={`media-card-play-btn ${isAlbumPlaying ? 'visible' : ''}`}
+                              className={`artist-page-media-card-play-btn ${isAlbumPlaying ? 'artist-page-visible' : ''}`}
                               onClick={(e) => handlePlayAlbum(e, album)}
                               title={
                                 isAlbumPlaying ? 'Пауза' : 'Слушать альбом'
@@ -669,14 +669,14 @@ export default function ArtistPage() {
                               <img
                                 src={isAlbumPlaying ? pauseIcon : playIcon}
                                 alt="Play/Pause"
-                                className="player-main-icon"
+                                className="artist-page-player-main-icon"
                               />
                             </button>
                           </div>
 
-                          <div className="media-card-info">
+                          <div className="artist-page-media-card-info">
                             <span
-                              className="media-card-title"
+                              className="artist-page-media-card-title"
                               title={album.title}
                             >
                               {album.title}
@@ -684,24 +684,24 @@ export default function ArtistPage() {
                             {album.has_age_restriction && (
                               <AgeBadge size="small" />
                             )}
-                            <span className="media-card-subtitle">
+                            <span className="artist-page-media-card-subtitle">
                               {album.tracks?.length
                                 ? `${album.tracks.length} трек(ов)`
                                 : 'Альбом'}
                             </span>
-                            <span className="media-card-subtitle">
+                            <span className="artist-page-media-card-subtitle">
                               {album.release_year}
                             </span>
                           </div>
 
                           {isStaff && (
                             <div
-                              className="card-staff-controls"
+                              className="artist-page-card-staff-controls"
                               onClick={(e) => e.stopPropagation()}
                             >
                               <button
                                 type="button"
-                                className="staff-btn edit"
+                                className="artist-page-staff-btn artist-page-edit"
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   setEditModal({
@@ -720,7 +720,7 @@ export default function ArtistPage() {
                               </button>
                               <button
                                 type="button"
-                                className="staff-btn delete"
+                                className="artist-page-staff-btn artist-page-delete"
                                 onClick={(e) => handleDeleteAlbum(e, album.id)}
                                 title="Удалить альбом"
                               >
@@ -741,9 +741,9 @@ export default function ArtistPage() {
 
               {/* Секция участия в релизах */}
               {data.collab_tracks && data.collab_tracks.length > 0 && (
-                <div className="artist-section">
+                <div className="artist-page-artist-section">
                   <h2>Участие в релизах</h2>
-                  <div className="media-cards-grid">
+                  <div className="artist-page-media-cards-grid">
                     {data.collab_tracks.map((track) => {
                       const isCurrentPlaying =
                         currentTrack?.id === track.id && isPlaying;
@@ -758,16 +758,16 @@ export default function ArtistPage() {
                       };
 
                       return (
-                        <div key={track.id} className="media-card single-card">
-                          <div className="media-card-cover-wrapper">
+                        <div key={track.id} className="artist-page-media-card single-card">
+                          <div className="artist-page-media-card-cover-wrapper">
                             <img
                               src={preparedTrack.cover}
                               alt={track.title}
-                              className="media-card-cover"
+                              className="artist-page-media-card-cover"
                             />
                             <button
                               type="button"
-                              className={`media-card-play-btn ${isCurrentPlaying ? 'visible' : ''}`}
+                              className={`artist-page-media-card-play-btn ${isCurrentPlaying ? 'artist-page-visible' : ''}`}
                               onClick={(e) => {
                                 e.stopPropagation();
                                 playTrack(
@@ -788,19 +788,19 @@ export default function ArtistPage() {
                               <img
                                 src={isCurrentPlaying ? pauseIcon : playIcon}
                                 alt="Play/Pause"
-                                className="player-main-icon"
+                                className="artist-page-player-main-icon"
                               />
                             </button>
                           </div>
 
-                          <div className="media-card-info">
+                          <div className="artist-page-media-card-info">
                             <span
-                              className="media-card-title"
+                              className="artist-page-media-card-title"
                               title={track.title}
                             >
                               {track.title}
                             </span>
-                            <span className="media-card-subtitle">
+                            <span className="artist-page-media-card-subtitle">
                               {track.album?.title ? (
                                 <>
                                   Альбом: <em>{track.album.title}</em>
@@ -825,12 +825,12 @@ export default function ArtistPage() {
 
                           {isStaff && (
                             <div
-                              className="card-staff-controls"
+                              className="artist-page-card-staff-controls"
                               onClick={(e) => e.stopPropagation()}
                             >
                               <button
                                 type="button"
-                                className="staff-btn edit"
+                                className="artist-page-staff-btn artist-page-edit"
                                 onClick={() =>
                                   setEditModal({
                                     isOpen: true,
@@ -848,7 +848,7 @@ export default function ArtistPage() {
                               </button>
                               <button
                                 type="button"
-                                className="staff-btn delete"
+                                className="artist-page-staff-btn artist-page-delete"
                                 onClick={(e) => handleDeleteTrack(e, track.id)}
                                 title="Удалить трек"
                               >

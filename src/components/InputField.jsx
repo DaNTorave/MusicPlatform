@@ -1,8 +1,11 @@
 import React, { useState } from 'react';
+
 import eyeIcon from '../assets/eye.svg';
 import eyeCrossedIcon from '../assets/eye-crossed.svg';
 import closeIcon from '../assets/close-icon.svg';
+
 import '../styles/InputField.css';
+
 
 export default function InputField({
   id,
@@ -45,7 +48,7 @@ export default function InputField({
     <div className={`input-field-container ${className}`}>
       {label && (
         <label htmlFor={id} className="input-label">
-          {label} {required && <span className="required-star">*</span>}
+          {label} {required && <span className="input-field-required-star">*</span>}
         </label>
       )}
       <div className="input-wrapper">
@@ -66,7 +69,7 @@ export default function InputField({
           autoFocus={autoFocus}
           autoComplete={autoComplete}
           minLength={minLength}
-          className={`input-element ${error ? 'input-error' : ''} ${leftIcon ? 'with-left-icon' : ''} ${clearable && value ? 'with-clear' : ''}`}
+          className={`input-field-input-element ${error ? 'input-error' : ''} ${leftIcon ? 'with-left-icon' : ''} ${clearable && value ? 'with-clear' : ''}`}
         />
 
         {/* Кнопка очистки */}

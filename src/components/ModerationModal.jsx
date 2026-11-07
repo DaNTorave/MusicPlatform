@@ -16,6 +16,7 @@ import alertIcon from '../assets/alert-circle.svg';
 
 import '../styles/ModerationModal.css';
 
+
 const COMMON_REJECT_REASONS = [
   'Низкое качество аудиофайла (присутствуют шумы, низкий битрейт)',
 ];
@@ -349,13 +350,13 @@ export default function ModerationModal({
       />
 
       <div
-        className="modal-background"
+        className="moderation-modal-modal-background"
         onClick={(e) => e.target === e.currentTarget && onClose()}
       >
-        <div className="modal-window moderation-modal">
-          <div className="modal-window-top-buttons">
+        <div className="moderation-modal-modal-window moderation-modal">
+          <div className="moderation-modal-modal-window-top-buttons">
             {moderationMode === 'review' ? (
-              <button type="button" className="modal-window-top-button active">
+              <button type="button" className="moderation-modal-modal-window-top-button moderation-modal-active">
                 Модерация:{' '}
                 {item.type === 'artist'
                   ? 'Исполнитель'
@@ -366,7 +367,7 @@ export default function ModerationModal({
             ) : (
               <button
                 type="button"
-                className="modal-window-top-button active"
+                className="moderation-modal-modal-window-top-button moderation-modal-active"
                 onClick={() => setModerationMode('review')}
               >
                 Причина отклонения
@@ -375,7 +376,7 @@ export default function ModerationModal({
 
             <button
               type="button"
-              className="modal-close-button"
+              className="moderation-modal-modal-close-button"
               onClick={onClose}
               title="Закрыть"
             >
@@ -383,15 +384,15 @@ export default function ModerationModal({
             </button>
           </div>
 
-          <div className="modal-window-content">
+          <div className="moderation-modal-modal-window-content">
             {moderationMode === 'review' && (
-              <form className="auth-form" onSubmit={(e) => e.preventDefault()}>
+              <form className="moderation-modal-auth-form" onSubmit={(e) => e.preventDefault()}>
                 <div className="moderation-preview">
                   <div className="moderation-cover">
                     <img
                       src={coverPreview || '/default.png'}
                       alt="Обложка"
-                      style={{ borderRadius: isArtist ? '50%' : '14px' }}
+                      className={`moderation-cover-img ${isArtist ? 'moderation-modal-circle' : 'rounded'}`}
                     />
                     <label className="moderation-cover-change">
                       <input
@@ -405,7 +406,7 @@ export default function ModerationModal({
                   </div>
                 </div>
 
-                <div className="auth-form-group">
+                <div className="moderation-modal-auth-form-group">
                   <label>
                     {isArtist ? 'Имя исполнителя' : isAlbum ? 'Название альбома' : 'Название'} *
                   </label>
@@ -420,11 +421,11 @@ export default function ModerationModal({
                 </div>
 
                 {isArtist && (
-                  <div className="auth-form-group">
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-                      <label style={{ margin: 0 }}>Жанры исполнителя *</label>
+                  <div className="moderation-modal-auth-form-group">
+                    <div className="moderation-modal-genre-header-row">
+                      <label className="moderation-modal-genre-header-label">Жанры исполнителя *</label>
                       {selectedGenres.length > 0 && (
-                        <span style={{ fontSize: '0.8rem', color: '#2563eb', fontWeight: 600 }}>
+                        <span className="moderation-modal-genre-selected-count">
                           Выбрано: {selectedGenres.length}
                         </span>
                       )}
@@ -432,17 +433,17 @@ export default function ModerationModal({
 
                     <input
                       type="text"
-                      className="input-element"
+                      className="moderation-modal-input-element moderation-modal-genre-search-input"
                       placeholder="Поиск жанра по названию..."
                       value={genreSearch}
                       onChange={(e) => setGenreSearch(e.target.value)}
                       disabled={loading}
-                      style={{ marginBottom: '8px' }}
+                      
                     />
 
-                    <div className="genres-selector-list">
+                    <div className="moderation-modal-genres-selector-list">
                       {filteredGenres.length === 0 ? (
-                        <div style={{ padding: '8px', color: '#94a3b8', fontSize: '0.85rem' }}>
+                        <div className="moderation-modal-genre-empty-hint">
                           Жанр не найден
                         </div>
                       ) : (
@@ -452,7 +453,7 @@ export default function ModerationModal({
                             <button
                               key={g.key}
                               type="button"
-                              className={`genre-chip-btn ${isSelected ? 'active' : ''}`}
+                              className={`moderation-modal-genre-chip-btn ${isSelected ? 'moderation-modal-active' : ''}`}
                               onClick={() => handleToggleGenre(g.key)}
                               disabled={loading}
                             >
@@ -466,7 +467,7 @@ export default function ModerationModal({
                 )}
 
                 {!isArtist && (
-                  <div className="auth-form-group">
+                  <div className="moderation-modal-auth-form-group">
                     <label>Год выпуска</label>
                     <input
                       type="number"
@@ -497,9 +498,9 @@ export default function ModerationModal({
                 )}
 
                 {isSingleAudio && (
-                  <div className="meta-box-card">
-                    <div className="meta-box-header">
-                      <label className="meta-switch-label">
+                  <div className="moderation-modal-meta-box-card">
+                    <div className="moderation-modal-meta-box-header">
+                      <label className="moderation-modal-meta-switch-label">
                         <input
                           type="checkbox"
                           checked={isCover}
@@ -525,13 +526,13 @@ export default function ModerationModal({
                 )}
 
                 {isSingleAudio && (
-                  <div className="auth-form-group">
+                  <div className="moderation-modal-auth-form-group">
                     <label>Аудиозапись</label>
                     <div className="moderation-single-audio-box">
                       <div className="moderation-single-audio-box-btn">
                         <button
                           type="button"
-                          className="track-slot-play-btn"
+                          className="moderation-modal-track-slot-play-btn"
                           onClick={handlePlaySingle}
                           title={isSinglePlaying ? 'Пауза' : 'Слушать'}
                         >
@@ -557,9 +558,9 @@ export default function ModerationModal({
                 )}
 
                 {isAlbum && (
-                  <div className="auth-form-group">
+                  <div className="moderation-modal-auth-form-group">
                     <label>Треки альбома ({tracks.length} шт.):</label>
-                    <div className="scrollable-track-list">
+                    <div className="moderation-modal-scrollable-track-list">
                       {tracks.map((track, idx) => (
                         <TrackSlotItem
                           key={track.id || idx}
@@ -605,36 +606,28 @@ export default function ModerationModal({
             )}
 
             {moderationMode === 'reject' && (
-              <div className="auth-form">
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#b91c1c' }}>
-                  <img
-                    src={alertIcon}
-                    alt="Внимание"
-                    style={{
-                      width: '22px',
-                      height: '22px',
-                      filter: 'invert(24%) sepia(88%) saturate(3412%) hue-rotate(352deg) brightness(92%) contrast(93%)'
-                    }}
-                  />
-                  <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800 }}>
+              <div className="moderation-modal-auth-form">
+                <div className="moderation-reject-alert-row">
+                  <img src={alertIcon} alt="Внимание" className="moderation-reject-alert-icon" />
+                  <h3 className="moderation-reject-alert-title">
                     Укажите причину отклонения для автора
                   </h3>
                 </div>
 
-                <p className="auth-form-subtitle" style={{ margin: '0 0 10px 0' }}>
+                <p className="moderation-modal-auth-form-subtitle moderation-reject-subtitle">
                   Автор получит уведомление с точной причиной отклонения релиза <strong>«{title || item.title || item.name}»</strong>:
                 </p>
 
                 <div>
-                  <label style={{ fontSize: '0.82rem', fontWeight: 700, color: '#64748b', display: 'block', marginBottom: '6px' }}>
+                  <label className="moderation-reject-presets-label">
                     Готовые шаблоны:
                   </label>
-                  <div className="reject-presets">
+                  <div className="moderation-modal-reject-presets">
                     {COMMON_REJECT_REASONS.map((preset, idx) => (
                       <button
                         key={idx}
                         type="button"
-                        className={`reject-preset-chip ${rejectReason === preset ? 'active' : ''}`}
+                        className={`moderation-modal-reject-preset-chip ${rejectReason === preset ? 'moderation-modal-active' : ''}`}
                         onClick={() => setRejectReason(preset)}
                       >
                         {preset}
@@ -643,7 +636,7 @@ export default function ModerationModal({
                   </div>
                 </div>
 
-                <div className="auth-form-group">
+                <div className="moderation-modal-auth-form-group">
                   <label>Текст причины (обязательно) *</label>
                   <textarea
                     value={rejectReason}
@@ -651,13 +644,12 @@ export default function ModerationModal({
                     placeholder="Опишите, что именно требуется исправить..."
                     required
                     disabled={loading}
-                    className="moderation-textarea"
-                    style={{ minHeight: '90px' }}
+                    className="moderation-modal-moderation-textarea moderation-reject-textarea"
                     autoFocus
                   />
                 </div>
 
-                <div className="modal-actions-row">
+                <div className="moderation-modal-modal-actions-row">
                   <Button
                     type="button"
                     variant="secondary"

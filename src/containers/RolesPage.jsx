@@ -9,7 +9,6 @@ import defaultAvatar from '../assets/Шотландская веслоухая.j
 import searchIcon from '../assets/search-icon.svg';
 
 import '../styles/RolesPage.css';
-import '../styles/Content.css';
 
 // Полный перечень ролей и их названий
 const ROLE_LABELS = {
@@ -99,7 +98,7 @@ export default function RolesPage() {
   const isOwner = currentUser?.role === 'owner';
 
   return (
-    <div className="content-page roles-page-container">
+    <div className="roles-page-content-page roles-page-container">
       <div className="roles-header-row">
         <div>
           <h2>Панель управления ролями</h2>
@@ -114,8 +113,8 @@ export default function RolesPage() {
         </Button>
       </div>
 
-      {errorMsg && <div className="auth-error-global">{errorMsg}</div>}
-      {successMsg && <div className="auth-success-global">{successMsg}</div>}
+      {errorMsg && <div className="roles-page-auth-error-global">{errorMsg}</div>}
+      {successMsg && <div className="roles-page-auth-success-global">{successMsg}</div>}
 
       <form onSubmit={handleSearch} className="roles-search-form">
         <InputField
@@ -136,9 +135,9 @@ export default function RolesPage() {
       </form>
 
       {loading ? (
-        <p className="status-message">Загрузка пользователей...</p>
+        <p className="roles-page-status-message">Загрузка пользователей...</p>
       ) : users.length === 0 ? (
-        <p className="empty-catalog-text">Пользователи не найдены.</p>
+        <p className="roles-page-empty-catalog-text">Пользователи не найдены.</p>
       ) : (
         <div className="roles-table-wrapper">
           <table className="roles-table">
@@ -178,7 +177,7 @@ export default function RolesPage() {
                     </td>
                     <td>{u.email}</td>
                     <td>
-                      <span className={`role-badge role-${u.role}`}>{u.role}</span>
+                      <span className={`roles-page-role-badge role-${u.role}`}>{u.role}</span>
                       {isCurrent && <span className="roles-you-pill">(Вы)</span>}
                     </td>
                     <td>

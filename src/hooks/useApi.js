@@ -1,5 +1,5 @@
-import { useState, useEffect, useCallback } from 'react';
-import { apiClient } from '../api/apiClient';
+import { useState, useEffect, useCallback } from 'react'
+import { apiClient } from '../api/apiClient'
 
 export const useApi = (endpoint, options = {}) => {
   const {
@@ -9,46 +9,46 @@ export const useApi = (endpoint, options = {}) => {
     onError = null,
     requireAuth = false,
     ...requestOptions
-  } = options;
+  } = options
 
-  const [data, setData] = useState(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
-  const [status, setStatus] = useState(null);
+  const [data, setData] = useState(null)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState(null)
+  const [status, setStatus] = useState(null)
 
   const execute = useCallback(
     async (customData = null, customEndpoint = null) => {
-      setLoading(true);
-      setError(null);
-      setStatus(null);
+      setLoading(true)
+      setError(null)
+      setStatus(null)
       try {
-        const url = customEndpoint || endpoint;
+        const url = customEndpoint || endpoint
         const response = await apiClient.request(url, {
           method,
           data: customData || requestOptions.data,
           requireAuth,
-          ...requestOptions,
-        });
-        setData(response);
-        setStatus(200);
-        if (onSuccess) onSuccess(response);
-        return response;
+          ...requestOptions
+        })
+        setData(response)
+        setStatus(200)
+        if (onSuccess) onSuccess(response)
+        return response
       } catch (err) {
-        setError(err);
-        setStatus(err.status || 500);
-        if (onError) onError(err);
+        setError(err)
+        setStatus(err.status || 500)
+        if (onError) onError(err)
       } finally {
-        setLoading(false);
+        setLoading(false)
       }
     },
-    [endpoint, method, requestOptions, requireAuth, onSuccess, onError],
-  );
+    [endpoint, method, requestOptions, requireAuth, onSuccess, onError]
+  )
 
   useEffect(() => {
     if (immediate && method === 'GET') {
-      execute();
+      execute()
     }
-  }, [immediate, method, execute]);
+  }, [immediate, method, execute])
 
   return {
     data,
@@ -58,58 +58,58 @@ export const useApi = (endpoint, options = {}) => {
     execute,
     setData,
     reset: () => {
-      setData(null);
-      setError(null);
-      setLoading(false);
-      setStatus(null);
-    },
-  };
-};
+      setData(null)
+      setError(null)
+      setLoading(false)
+      setStatus(null)
+    }
+  }
+}
 
 export const useMutation = (endpoint, options = {}) => {
   const {
     method = 'POST',
     onSuccess = null,
     onError = null,
-    requireAuth = false,
-  } = options;
+    requireAuth = false
+  } = options
 
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
-  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState(null)
+  const [data, setData] = useState(null)
 
   const mutate = useCallback(
     async (data = null, customEndpoint = null) => {
-      setLoading(true);
-      setError(null);
+      setLoading(true)
+      setError(null)
 
       try {
-        const url = customEndpoint || endpoint;
+        const url = customEndpoint || endpoint
         const response = await apiClient.request(url, {
           method,
           data,
-          requireAuth,
-        });
+          requireAuth
+        })
 
-        setData(response);
+        setData(response)
 
         if (onSuccess) {
-          onSuccess(response);
+          onSuccess(response)
         }
 
-        return response;
+        return response
       } catch (err) {
-        setError(err);
+        setError(err)
 
         if (onError) {
-          onError(err);
+          onError(err)
         }
       } finally {
-        setLoading(false);
+        setLoading(false)
       }
     },
-    [endpoint, method, requireAuth, onSuccess, onError],
-  );
+    [endpoint, method, requireAuth, onSuccess, onError]
+  )
 
   return {
     mutate,
@@ -117,9 +117,9 @@ export const useMutation = (endpoint, options = {}) => {
     error,
     data,
     reset: () => {
-      setData(null);
-      setError(null);
-      setLoading(false);
-    },
-  };
-};
+      setData(null)
+      setError(null)
+      setLoading(false)
+    }
+  }
+}

@@ -48,17 +48,19 @@
   font-size: 0.75rem;
   font-weight: 600;
   padding: 5px 10px;
-  border-radius: 12px;
+  border-radius: 22px;
   cursor: pointer;
   border: 2px solid #ffffff;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-  transition: transform 0.2s ease, background-color 0.2s ease;
+  transition:
+    transform 0.2s ease,
+    background-color 0.2s ease;
   user-select: none;
 }
 
 .profile-avatar-edit-badge:hover {
   background: #252830;
-  transform: scale(1.05);
+  transform: scale(1.02);
 }
 
 .profile-info h1 {
@@ -75,16 +77,12 @@
   padding: 0.25rem 0 0.45rem 0;
 }
 
-.profile-email {
-  padding: 0 0 0.3rem 0;
-}
-
 .profile-badge {
   display: flex;
   gap: 0.6rem;
 }
 
-.role-badge {
+.profile-page-role-badge {
   padding: 0.3rem 0.85rem;
   border-radius: 20px;
   font-size: 0.8rem;
@@ -92,22 +90,25 @@
   text-transform: uppercase;
 }
 
-.role-badge.owner {
+.profile-page-role-badge.owner {
   background: #fef3c7;
   color: #b45309;
   border: 1px solid #fde68a;
 }
-.role-badge.admin {
+
+.profile-page-role-badge.admin {
   background: #fee2e2;
   color: #b91c1c;
   border: 1px solid #fecaca;
 }
-.role-badge.moderator {
+
+.profile-page-role-badge.moderator {
   background: #e0e7ff;
   color: #4338ca;
   border: 1px solid #c7d2fe;
 }
-.role-badge.member {
+
+.profile-page-role-badge.member {
   background: #f1f5f9;
   color: #475569;
   border: 1px solid #e2e8f0;
@@ -209,4 +210,92 @@
 .profile-show-all-btn:hover {
   background: #e0f2fe;
   transform: translateX(3px);
+}
+
+.profile-page-artist-page-state {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 250px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #666;
+}
+
+.profile-page-empty-text {
+  color: #888;
+  font-size: 0.95rem;
+  font-style: italic;
+}
+
+.profile-avatar-file-input {
+  display: none;
+}
+
+.profile-favorites-title {
+  margin: 0;
+  font-size: 1.4rem;
+  font-weight: 800;
+}
+
+.playlists-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+  gap: 1.5rem;
+}
+
+.playlist-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  background: #fbf9f9;
+  padding: 12px;
+  border-radius: 16px;
+  border: 1px solid #f0ecec;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+}
+
+.playlist-card:hover {
+  transform: translateY(-4px);
+  background: #ffffff;
+  border-color: #e5e0e0;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.06);
+}
+
+.playlist-card-cover {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  border-radius: 12px;
+  object-fit: cover;
+  display: block;
+}
+
+.playlist-card-info {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin-top: 10px;
+}
+
+.playlist-card-title {
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: #14161a;
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.playlist-card-count {
+  font-size: 0.8rem;
+  color: #888;
+  font-weight: 500;
+}
+
+.profile-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 }

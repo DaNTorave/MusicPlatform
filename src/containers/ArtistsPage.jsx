@@ -4,12 +4,11 @@ import { apiClient } from '../api/apiClient';
 
 import InputField from '../components/InputField';
 import Button from '../components/Button';
+
 import defaultAvatar from '../assets/Шотландская веслоухая.jpg';
 import searchIcon from '../assets/search-icon.svg';
 
-import '../styles/ArtistPage.css';
-import '../styles/Content.css';
-import '../styles/ArtistsPage.css';
+import "../styles/ArtistsPage.css"
 
 export default function ArtistsPage() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -65,9 +64,9 @@ export default function ArtistsPage() {
     <div className="artists-catalog-page">
       <div className="artists-catalog-header">
         <div>
-          <span className="artist-tag">Каталог</span>
-          <h1 className="artist-title">Все исполнители</h1>
-          <p className="artist-meta-string" style={{ paddingLeft: 0 }}>
+          <span className="artists-page-artist-tag">Каталог</span>
+          <h1 className="artists-page-artist-title">Все исполнители</h1>
+          <p className="artists-page-artist-meta-string artists-catalog-count">
             Найдено артистов: {artists.length}
           </p>
         </div>
@@ -83,8 +82,8 @@ export default function ArtistsPage() {
       </div>
 
       {/* Поисковая строка по артистам */}
-      <div className="content-search" style={{ marginBottom: '1rem' }}>
-        <div className="search-bar-wrapper">
+      <div className="artists-page-content-search artists-catalog-search">
+        <div className="artists-page-search-bar-wrapper">
           <InputField
             type="text"
             placeholder="Поиск исполнителя по имени..."
@@ -101,7 +100,7 @@ export default function ArtistsPage() {
       <div className="genres-filter-bar">
         <button
           type="button"
-          className={`genre-filter-chip ${!selectedGenre ? 'active' : ''}`}
+          className={`genre-filter-chip ${!selectedGenre ? 'artists-page-active' : ''}`}
           onClick={() => {
             searchParams.delete('genre');
             setSearchParams(searchParams);
@@ -114,7 +113,7 @@ export default function ArtistsPage() {
           <button
             key={g.key}
             type="button"
-            className={`genre-filter-chip ${selectedGenre === g.key ? 'active' : ''}`}
+            className={`genre-filter-chip ${selectedGenre === g.key ? 'artists-page-active' : ''}`}
             onClick={() => handleSelectGenre(g.key)}
           >
             {g.title_ru}
@@ -123,13 +122,13 @@ export default function ArtistsPage() {
       </div>
 
       {/* Сетка артистов */}
-      <div className="artist-section">
+      <div className="artists-page-artist-section">
         {loading ? (
-          <p className="empty-text">Загрузка каталога исполнителей...</p>
+          <p className="artists-page-empty-text">Загрузка каталога исполнителей...</p>
         ) : artists.length === 0 ? (
-          <p className="empty-text">По заданным параметрам артисты не найдены.</p>
+          <p className="artists-page-empty-text">По заданным параметрам артисты не найдены.</p>
         ) : (
-          <div className="artists-grid">
+          <div className="artists-page-artists-grid">
             {artists.map((artist) => {
               const artistGenres = Array.isArray(artist.genres) && artist.genres.length > 0
                 ? artist.genres
@@ -138,16 +137,16 @@ export default function ArtistsPage() {
               return (
                 <div
                   key={artist.id}
-                  className="artist-card"
+                  className="artists-page-artist-card"
                   onClick={() => navigate(`/artists/${artist.id}`)}
                 >
                   <img
                     src={artist.avatar || defaultAvatar}
                     alt={artist.name}
-                    className="artist-card-avatar"
+                    className="artists-page-artist-card-avatar"
                   />
-                  <div className="artist-card-info">
-                    <h3 className="artist-card-name">{artist.name}</h3>
+                  <div className="artists-page-artist-card-info">
+                    <h3 className="artists-page-artist-card-name">{artist.name}</h3>
 
                     {/* Жанры артиста в виде ссылок на страницу /artists?genre= */}
                     <div
@@ -168,7 +167,7 @@ export default function ArtistsPage() {
                       })}
                     </div>
 
-                    <span className="artist-card-plays">
+                    <span className="artists-page-artist-card-plays">
                       {artist.plays_count || 0} прослушиваний
                     </span>
                   </div>

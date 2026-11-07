@@ -9,8 +9,8 @@ import closeIcon from '../assets/close-icon.svg';
 import plusIcon from '../assets/plus-icon.svg';
 import checkIcon from '../assets/check-circle.svg';
 
-import '../styles/AuthModal.css';
-import '../styles/Playlists.css';
+import '../styles/AddToPlaylistModal.css';
+
 
 export default function AddToPlaylistModal({ isOpen, onClose, track }) {
   // Состояния списка плейлистов, загрузки и текущего экрана внутри модального окна
@@ -93,29 +93,29 @@ export default function AddToPlaylistModal({ isOpen, onClose, track }) {
 
   return (
     <div
-      className="modal-background"
+      className="add-to-playlist-modal-modal-background"
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
-      <div className="modal-window" style={{ maxWidth: '480px' }}>
+      <div className="add-to-playlist-modal-modal-window add-to-playlist-modal-window">
         {/* Шапка единого модального окна с переключением вкладок */}
-        <div className="modal-window-top-buttons">
+        <div className="add-to-playlist-modal-modal-window-top-buttons">
           <button
             type="button"
-            className={`modal-window-top-button ${activeView === 'list' ? 'active' : ''}`}
+            className={`add-to-playlist-modal-modal-window-top-button ${activeView === 'list' ? 'add-to-playlist-modal-active' : ''}`}
             onClick={() => setActiveView('list')}
           >
             Добавить в плейлист
           </button>
           <button
             type="button"
-            className={`modal-window-top-button ${activeView === 'create' ? 'active' : ''}`}
+            className={`add-to-playlist-modal-modal-window-top-button ${activeView === 'create' ? 'add-to-playlist-modal-active' : ''}`}
             onClick={() => setActiveView('create')}
           >
             Новый плейлист
           </button>
           <button
             type="button"
-            className="modal-close-button"
+            className="add-to-playlist-modal-modal-close-button"
             onClick={onClose}
             title="Закрыть"
           >
@@ -123,7 +123,7 @@ export default function AddToPlaylistModal({ isOpen, onClose, track }) {
           </button>
         </div>
 
-        <div className="modal-window-content">
+        <div className="add-to-playlist-modal-modal-window-content">
           {/* Режим выбора плейлиста из списка */}
           {activeView === 'list' ? (
             <div className="add-to-playlist-container">
@@ -143,12 +143,12 @@ export default function AddToPlaylistModal({ isOpen, onClose, track }) {
                 </div>
               </div>
 
-              {errorMsg && <div className="auth-error-global">{errorMsg}</div>}
+              {errorMsg && <div className="add-to-playlist-modal-auth-error-global">{errorMsg}</div>}
 
               <div className="add-to-playlist-top-bar">
                 <input
                   type="text"
-                  className="input-element add-to-playlist-search"
+                  className="add-to-playlist-modal-input-element add-to-playlist-search"
                   placeholder="Поиск плейлиста..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
@@ -165,7 +165,7 @@ export default function AddToPlaylistModal({ isOpen, onClose, track }) {
 
               <div className="add-to-playlist-list">
                 {loading ? (
-                  <p className="empty-text">Загрузка плейлистов...</p>
+                  <p className="add-to-playlist-modal-empty-text">Загрузка плейлистов...</p>
                 ) : filteredPlaylists.length === 0 ? (
                   <div className="add-to-playlist-empty">
                     <p>Плейлисты не найдены</p>

@@ -4,14 +4,14 @@ import { useNavigate } from 'react-router-dom';
 import { formatEntityType } from '../hooks/formatters';
 
 import Button from './Button';
+
 import closeIcon from '../assets/close-icon.svg';
 import checkIcon from '../assets/check-circle.svg';
 import alertIcon from '../assets/alert-circle.svg';
 
-import '../styles/AuthModal.css';
-import '../styles/NotificationsModal.css';
+import '../styles/NotificationDetailModal.css';
 
-// Содержимое детального просмотра уведомления (для встраивания в единое модальное окно)
+
 export function NotificationDetailContent({
   notification,
   onBack,
@@ -78,30 +78,14 @@ export function NotificationDetailContent({
       {/* Статусная шапка: зеленая для одобрения, красная для отклонения */}
       <div
         className={`notification-detail-header-status ${
-          isApproved ? 'approved' : isRejected ? 'rejected' : 'info'
+          isApproved ? 'notification-detail-modal-approved' : isRejected ? 'notification-detail-modal-rejected' : 'notification-detail-modal-info'
         }`}
       >
         <div className="notification-detail-status-icon">
           {isApproved ? (
-            <img
-              src={checkIcon}
-              alt="Успех"
-              style={{
-                width: '22px',
-                height: '22px',
-                filter: 'brightness(0) invert(1)',
-              }}
-            />
+            <img src={checkIcon} alt="Успех" className="notification-detail-status-svg" />
           ) : (
-            <img
-              src={alertIcon}
-              alt="Внимание"
-              style={{
-                width: '22px',
-                height: '22px',
-                filter: 'brightness(0) invert(1)',
-              }}
-            />
+            <img src={alertIcon} alt="Внимание" className="notification-detail-status-svg" />
           )}
         </div>
         <div className="notification-detail-status-text">
@@ -132,7 +116,7 @@ export function NotificationDetailContent({
           <p className="notification-approval-desc">
             {notification.message}
           </p>
-          <p style={{ margin: 0, fontSize: '0.85rem', color: '#15803d' }}>
+          <p className="notification-approval-note">
             Ваш релиз прошел проверку соответствия правилам площадки и теперь доступен всем слушателям платформы.
           </p>
         </div>
@@ -210,17 +194,17 @@ export default function NotificationDetailModal({
 
   return (
     <div
-      className="modal-background"
+      className="notification-detail-modal-modal-background"
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
-      <div className="modal-window notification-detail-window">
-        <div className="modal-window-top-buttons">
-          <button type="button" className="modal-window-top-button active">
+      <div className="notification-detail-modal-modal-window notification-detail-window">
+        <div className="notification-detail-modal-modal-window-top-buttons">
+          <button type="button" className="notification-detail-modal-modal-window-top-button notification-detail-modal-active">
             Детали уведомления
           </button>
           <button
             type="button"
-            className="modal-close-button"
+            className="notification-detail-modal-modal-close-button"
             onClick={onClose}
             title="Закрыть"
           >
@@ -228,7 +212,7 @@ export default function NotificationDetailModal({
           </button>
         </div>
 
-        <div className="modal-window-content">
+        <div className="notification-detail-modal-modal-window-content">
           <NotificationDetailContent
             notification={notification}
             onClose={onClose}

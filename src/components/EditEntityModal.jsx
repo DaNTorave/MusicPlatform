@@ -9,7 +9,8 @@ import ImageCropModal from './ImageCropModal';
 import defaultCover from '../assets/Шотландская веслоухая.jpg';
 import closeIcon from '../assets/close-icon.svg';
 
-import '../styles/AuthModal.css';
+import '../styles/EditEntityModal.css';
+
 
 export default function EditEntityModal({
   isOpen,
@@ -188,37 +189,37 @@ export default function EditEntityModal({
       />
 
       <div
-        className="modal-background"
+        className="edit-entity-modal-modal-background"
         onClick={(e) => e.target === e.currentTarget && onClose()}
       >
         <div
-          className={`modal-window ${type === 'album' ? 'modal-window-wide' : 'modal-window-narrow'}`}
+          className={`edit-entity-modal-modal-window ${type === 'album' ? 'edit-entity-modal-modal-window-wide' : 'edit-entity-modal-modal-window-narrow'}`}
         >
-          <div className="modal-window-top-buttons">
-            <button type="button" className="modal-window-top-button active">
+          <div className="edit-entity-modal-modal-window-top-buttons">
+            <button type="button" className="edit-entity-modal-modal-window-top-button edit-entity-modal-active">
               {getModalTitle()}
             </button>
             <button
               type="button"
-              className="modal-close-button"
+              className="edit-entity-modal-modal-close-button"
               onClick={onClose}
             >
               <img src={closeIcon} alt="Закрыть" />
             </button>
           </div>
 
-          <div className="modal-window-content modal-window-content-scroll">
-            <form className="auth-form" onSubmit={handleSubmit}>
-              {errorMsg && <div className="auth-error-global">{errorMsg}</div>}
+          <div className="edit-entity-modal-modal-window-content edit-entity-modal-modal-window-content-scroll">
+            <form className="edit-entity-modal-auth-form" onSubmit={handleSubmit}>
+              {errorMsg && <div className="edit-entity-modal-auth-error-global">{errorMsg}</div>}
 
-              <div className="avatar-preview-container">
-                <div className="avatar-preview-wrapper">
+              <div className="edit-entity-modal-avatar-preview-container">
+                <div className="edit-entity-modal-avatar-preview-wrapper">
                   <img
                     src={coverPreview || defaultCover}
                     alt="cover"
-                    className={`avatar-preview-image ${type === 'artist' ? 'circle' : ''}`}
+                    className={`edit-entity-modal-avatar-preview-image ${type === 'artist' ? 'edit-entity-modal-circle' : ''}`}
                   />
-                  <label className="avatar-preview-badge">
+                  <label className="edit-entity-modal-avatar-preview-badge">
                     <input
                       ref={fileInputRef}
                       type="file"
@@ -230,7 +231,7 @@ export default function EditEntityModal({
                 </div>
               </div>
 
-              <div className="auth-form-group">
+              <div className="edit-entity-modal-auth-form-group">
                 <label>
                   {type === 'artist' ? 'Имя исполнителя *' : 'Название *'}
                 </label>
@@ -244,7 +245,7 @@ export default function EditEntityModal({
               </div>
 
               {type === 'artist' && (
-                <div className="auth-form-group">
+                <div className="edit-entity-modal-auth-form-group">
                   <label>Основной жанр</label>
                   <input
                     type="text"
@@ -256,7 +257,7 @@ export default function EditEntityModal({
               )}
 
               {type === 'track' && (
-                <div className="auth-form-group">
+                <div className="edit-entity-modal-auth-form-group">
                   <label>Заменить аудиофайл (необязательно)</label>
                   <input
                     type="file"
@@ -276,19 +277,19 @@ export default function EditEntityModal({
               )}
 
               {type === 'album' && (
-                <div className="auth-form-group">
-                  <div className="track-list-header">
+                <div className="edit-entity-modal-auth-form-group">
+                  <div className="edit-entity-modal-track-list-header">
                     <label>Список треков ({tracks.length} шт.):</label>
                     <button
                       type="button"
-                      className="track-list-add-btn"
+                      className="edit-entity-modal-track-list-add-btn"
                       onClick={handleAddTrackSlot}
                     >
                       + Добавить трек
                     </button>
                   </div>
 
-                  <div className="scrollable-track-list">
+                  <div className="edit-entity-modal-scrollable-track-list">
                     {tracks.map((track, i) => (
                       <TrackSlotItem
                         key={track.id || `new-${i}`}
@@ -305,7 +306,7 @@ export default function EditEntityModal({
                 </div>
               )}
 
-              <div className="modal-actions-row">
+              <div className="edit-entity-modal-modal-actions-row">
                 <Button
                   type="button"
                   variant="secondary"

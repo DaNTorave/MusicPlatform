@@ -6,7 +6,7 @@ import { formatEntityType } from '../hooks/formatters';
 import Button from '../components/Button';
 import ModerationModal from '../components/ModerationModal';
 
-import '../styles/Content.css';
+import '../styles/ModerationPage.css';
 
 export default function ModerationPage() {
   // Состояния очереди и загрузки
@@ -72,15 +72,15 @@ export default function ModerationPage() {
 
   if (loading) {
     return (
-      <div className="content-page">
-        <p className="status-message">Загрузка очереди...</p>
+      <div className="moderation-page-content-page">
+        <p className="moderation-page-status-message">Загрузка очереди...</p>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="content-page">
+      <div className="moderation-page-content-page">
         <p className="error-text">{error}</p>
       </div>
     );
@@ -97,7 +97,7 @@ export default function ModerationPage() {
         loading={actionLoading}
       />
 
-      <div className="content-page moderation-page-content">
+      <div className="moderation-page-content-page moderation-page-content">
         <div className="moderation-header">
           <h2>Панель модерации</h2>
           <Button variant="secondary" fullWidth={false} onClick={loadPending}>
@@ -106,7 +106,7 @@ export default function ModerationPage() {
         </div>
 
         {pendingItems.length === 0 ? (
-          <p className="empty-catalog-text">Очередь модерации пуста.</p>
+          <p className="moderation-page-empty-catalog-text">Очередь модерации пуста.</p>
         ) : (
           <div className="moderation-list">
             {pendingItems.map((item) => {

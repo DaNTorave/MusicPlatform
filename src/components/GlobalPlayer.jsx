@@ -16,6 +16,7 @@ import downloadIcon from '../assets/download-icon.svg';
 
 import '../styles/GlobalPlayer.css';
 
+
 export default function GlobalPlayer() {
   const {
     currentTrack,
@@ -151,7 +152,7 @@ export default function GlobalPlayer() {
 
             {isCover && (
               <span
-                className={`player-cover-badge ${originalTrack ? 'clickable' : ''}`}
+                className={`player-cover-badge ${originalTrack ? 'global-player-clickable' : ''}`}
                 onClick={(e) => {
                   e.stopPropagation();
                   if (originalTrack) {
@@ -203,7 +204,7 @@ export default function GlobalPlayer() {
         <div className="player-controls">
           <button
             type="button"
-            className={`player-btn-secondary player-side-action-btn ${isCurrentFav ? 'is-fav' : ''}`}
+            className={`player-btn-secondary player-side-action-btn ${isCurrentFav ? 'global-player-is-fav' : ''}`}
             onClick={handleFavoriteClick}
             disabled={!currentTrack.id}
             title={isCurrentFav ? 'Удалить из избранного' : 'В избранное'}
@@ -232,7 +233,7 @@ export default function GlobalPlayer() {
             <img
               src={isPlaying ? pauseIcon : playIcon}
               alt="Play/Pause"
-              className="player-main-icon"
+              className="global-player-player-main-icon"
             />
           </button>
 

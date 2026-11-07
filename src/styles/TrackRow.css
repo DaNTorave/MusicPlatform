@@ -20,11 +20,6 @@
   box-shadow: 0 4px 12px rgba(15, 23, 42, 0.04);
 }
 
-.track-row-item.active {
-  background: #f0f7ff;
-  border-color: #bfdbfe;
-}
-
 /* Повышение слоя строки при открытом меню для предотвращения перекрытия соседними строками */
 .track-row-item.menu-open {
   z-index: 50;
@@ -39,11 +34,6 @@
   font-weight: 600;
   color: #94a3b8;
   flex-shrink: 0;
-}
-
-.track-row-item.active .track-row-num {
-  color: #007bff;
-  font-weight: 700;
 }
 
 /* Обложка трека с кнопкой воспроизведения поверх */
@@ -81,8 +71,13 @@
 }
 
 .track-row-item:hover .track-cover-play-btn,
-.track-cover-play-btn.visible {
+.track-cover-play-btn.track-row-visible {
   opacity: 1;
+}
+
+.track-row-item.active {
+  background: #f0f7ff;
+  border-color: #bfdbfe;
 }
 
 /* Кнопка воспроизведения без обложки */
@@ -103,7 +98,7 @@
 }
 
 .track-play-btn:hover,
-.track-play-btn.visible {
+.track-play-btn.track-row-visible {
   background: #007bff;
 }
 
@@ -119,7 +114,7 @@
 }
 
 .track-play-btn:hover .player-icon-svg,
-.track-play-btn.visible .player-icon-svg {
+.track-play-btn.track-row-visible .player-icon-svg {
   filter: brightness(0) invert(1);
 }
 
@@ -157,10 +152,6 @@
   color: #007bff;
 }
 
-.track-row-item.active .track-row-title {
-  color: #007bff;
-}
-
 /* Метка кавера */
 .track-cover-badge {
   font-size: 0.7rem;
@@ -173,12 +164,12 @@
   flex-shrink: 0;
 }
 
-.track-cover-badge.clickable {
+.track-cover-badge.track-row-clickable {
   cursor: pointer;
   transition: background 0.15s ease;
 }
 
-.track-cover-badge.clickable:hover {
+.track-cover-badge.track-row-clickable:hover {
   background: #bae6fd;
 }
 
@@ -239,7 +230,9 @@
   justify-content: center;
   cursor: pointer;
   padding: 0;
-  transition: background 0.15s ease, transform 0.15s ease;
+  transition:
+    background 0.15s ease,
+    transform 0.15s ease;
 }
 
 .track-action-btn:hover,
@@ -255,7 +248,9 @@
   width: 17px;
   height: 17px;
   opacity: 0.65;
-  transition: opacity 0.15s ease, transform 0.15s ease;
+  transition:
+    opacity 0.15s ease,
+    transform 0.15s ease;
 }
 
 .track-action-btn:hover .action-icon {
@@ -298,36 +293,14 @@
 .track-more-popover.open-down {
   top: calc(100% + 6px);
   bottom: auto;
-  animation: trackMenuFadeInDown 0.16s ease-out;
+  animation: track-row-trackMenuFadeInDown 0.16s ease-out;
 }
 
 /* Открытие меню вверх */
 .track-more-popover.open-up {
   bottom: calc(100% + 6px);
   top: auto;
-  animation: trackMenuFadeInUp 0.16s ease-out;
-}
-
-@keyframes trackMenuFadeInDown {
-  from {
-    opacity: 0;
-    transform: translateY(-6px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes trackMenuFadeInUp {
-  from {
-    opacity: 0;
-    transform: translateY(6px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  animation: track-row-trackMenuFadeInUp 0.16s ease-out;
 }
 
 .track-more-item {
@@ -344,7 +317,9 @@
   color: #1e293b;
   cursor: pointer;
   text-align: left;
-  transition: background 0.15s ease, color 0.15s ease;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease;
 }
 
 .track-more-item:hover {
@@ -364,4 +339,52 @@
   height: 16px;
   opacity: 0.75;
   flex-shrink: 0;
+}
+
+.active-fav {
+  opacity: 1;
+}
+
+.download-btn {
+  cursor: pointer;
+}
+
+.more-btn {
+  cursor: pointer;
+}
+
+.edit-btn {
+  cursor: pointer;
+}
+
+.delete-btn {
+  cursor: pointer;
+}
+
+@keyframes track-row-trackMenuFadeInDown {
+  from {
+    opacity: 0;
+
+    transform: translateY(-6px);
+  }
+
+  to {
+    opacity: 1;
+
+    transform: translateY(0);
+  }
+}
+
+@keyframes track-row-trackMenuFadeInUp {
+  from {
+    opacity: 0;
+
+    transform: translateY(6px);
+  }
+
+  to {
+    opacity: 1;
+
+    transform: translateY(0);
+  }
 }

@@ -27,7 +27,7 @@ function AppLayout() {
 
   useEffect(() => {
     const updateBodyScrollLock = () => {
-      const hasOpenModal = document.querySelector('.modal-background') !== null;
+      const hasOpenModal = document.querySelector('[class*="modal-background"]') !== null;
       if (hasOpenModal) {
         document.body.style.overflow = 'hidden';
       } else {
@@ -52,7 +52,7 @@ function AppLayout() {
   return (
     <>
       <Header />
-      <main style={{ paddingBottom: isPlayerPage ? '0' : '90px' }}>
+      <main className={`app-main ${isPlayerPage ? 'app-main-player' : 'app-main-default'}`}>
         <Routes>
           <Route path="/" element={<Content />} />
           <Route path="/artists" element={<ArtistsPage />} />

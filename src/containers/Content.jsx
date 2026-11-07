@@ -178,7 +178,7 @@ export default function Content() {
 
       <div className="content-page">
         <div className="content-search" ref={searchContainerRef}>
-          <div className="search-bar-wrapper">
+          <div className="content-search-bar-wrapper">
             <InputField
               type="text"
               placeholder="Поиск по трекам, авторам или жанрам..."
@@ -198,25 +198,25 @@ export default function Content() {
 
             {isDropdownOpen && (
               <div
-                className="search-dropdown-menu"
+                className="content-search-dropdown-menu"
                 onMouseDown={(e) => e.stopPropagation()}
               >
                 {!hasResults ? (
-                  <div className="search-dropdown-empty">
+                  <div className="content-search-dropdown-empty">
                     Ничего не найдено по запросу:{' '}
                     <strong>{debouncedQuery}</strong>
                   </div>
                 ) : (
                   <>
                     {searchResults.tracks.length > 0 && (
-                      <div className="search-category-group">
-                        <div className="search-category-header">
+                      <div className="content-search-category-group">
+                        <div className="content-search-category-header">
                           <span>Треки</span>
-                          <span className="search-category-count">
+                          <span className="content-search-category-count">
                             {searchResults.tracks.length}
                           </span>
                         </div>
-                        <div className="search-category-items">
+                        <div className="content-search-category-items">
                           {searchResults.tracks.map((track) => {
                             const isCurrentPlaying =
                               currentTrack &&
@@ -226,37 +226,37 @@ export default function Content() {
                             return (
                               <div
                                 key={`track-${track.id}`}
-                                className={`search-item-track ${isCurrentPlaying ? 'is-playing' : ''}`}
+                                className={`content-search-item-track ${isCurrentPlaying ? 'content-is-playing' : ''}`}
                                 onClick={() => {
                                   playTrack(track, searchResults.tracks);
                                   setIsSearchFocused(false);
                                 }}
                               >
-                                <div className="search-track-cover-wrapper">
+                                <div className="content-search-track-cover-wrapper">
                                   <img
                                     src={track.cover || defaultAvatar}
                                     alt={track.title}
-                                    className="search-track-cover"
+                                    className="content-search-track-cover"
                                   />
-                                  <div className="search-track-play-overlay">
+                                  <div className="content-search-track-play-overlay">
                                     <img src={playIcon} alt="play" />
                                   </div>
                                 </div>
-                                <div className="search-track-info">
-                                  <div className="search-track-title-row">
-                                    <span className="search-track-title">
+                                <div className="content-search-track-info">
+                                  <div className="content-search-track-title-row">
+                                    <span className="content-search-track-title">
                                       {track.title}
                                     </span>
                                     {track.age_restriction && (
                                       <AgeBadge size="small" />
                                     )}
                                     {track.is_cover && (
-                                      <span className="search-track-cover-tag">
+                                      <span className="content-search-track-cover-tag">
                                         кавер
                                       </span>
                                     )}
                                   </div>
-                                  <span className="search-track-artist">
+                                  <span className="content-search-track-artist">
                                     {track.artist?.name ||
                                       'Неизвестный исполнитель'}
                                     {Array.isArray(track.collaborators) &&
@@ -279,18 +279,18 @@ export default function Content() {
                     )}
 
                     {searchResults.artists.length > 0 && (
-                      <div className="search-category-group">
-                        <div className="search-category-header">
+                      <div className="content-search-category-group">
+                        <div className="content-search-category-header">
                           <span>Исполнители</span>
-                          <span className="search-category-count">
+                          <span className="content-search-category-count">
                             {searchResults.artists.length}
                           </span>
                         </div>
-                        <div className="search-category-items">
+                        <div className="content-search-category-items">
                           {searchResults.artists.map((artist) => (
                             <div
                               key={`artist-${artist.id}`}
-                              className="search-item-artist"
+                              className="content-search-item-artist"
                               onClick={() => {
                                 setIsSearchFocused(false);
                                 navigate(`/artists/${artist.id}`);
@@ -299,17 +299,17 @@ export default function Content() {
                               <img
                                 src={artist.avatar || defaultAvatar}
                                 alt={artist.name}
-                                className="search-artist-avatar"
+                                className="content-search-artist-avatar"
                               />
-                              <div className="search-artist-info">
-                                <span className="search-artist-name">
+                              <div className="content-search-artist-info">
+                                <span className="content-search-artist-name">
                                   {artist.name}
                                 </span>
-                                <span className="search-artist-genre">
+                                <span className="content-search-artist-genre">
                                   {formatGenresToRu(artist)}
                                 </span>
                               </div>
-                              <span className="search-badge">Исполнитель</span>
+                              <span className="content-search-badge">Исполнитель</span>
                             </div>
                           ))}
                         </div>
@@ -361,7 +361,7 @@ export default function Content() {
                     <button
                       key={limit}
                       type="button"
-                      className={`chart-filter-btn ${chartLimit === limit ? 'active' : ''}`}
+                      className={`chart-filter-btn ${chartLimit === limit ? 'content-active' : ''}`}
                       onClick={() => setChartLimit(limit)}
                     >
                       Топ-{limit}
@@ -371,11 +371,11 @@ export default function Content() {
               </div>
 
               {loading ? (
-                <p className="status-message">Загрузка чарта...</p>
+                <p className="content-status-message">Загрузка чарта...</p>
               ) : topTracks.length === 0 ? (
-                <p className="empty-catalog-text">Пока нет треков в чарте.</p>
+                <p className="content-empty-catalog-text">Пока нет треков в чарте.</p>
               ) : (
-                <div className="album-tracks-container scrollable-chart-list">
+                <div className="content-album-tracks-container content-scrollable-chart-list">
                   {displayedTracks.map((track, idx) => (
                     <TrackRow
                       key={track.id}
@@ -400,7 +400,7 @@ export default function Content() {
                 </h2>
                 <button
                   type="button"
-                  className="chart-filter-btn active"
+                  className="chart-filter-btn content-active"
                   onClick={() => navigate('/artists')}
                 >
                   Смотреть всё
@@ -408,27 +408,27 @@ export default function Content() {
               </div>
 
               {loading ? (
-                <p className="status-message">Загрузка каталога...</p>
+                <p className="content-status-message">Загрузка каталога...</p>
               ) : artists.length === 0 ? (
-                <p className="empty-catalog-text">
+                <p className="content-empty-catalog-text">
                   Список исполнителей пуст или находится на модерации.
                 </p>
               ) : (
-                <div className="artists-grid">
+                <div className="content-artists-grid">
                   {artists.slice(0, 6).map((artist) => (
                     <div
                       key={artist.id}
-                      className="artist-card"
+                      className="content-artist-card"
                       onClick={() => navigate(`/artists/${artist.id}`)}
                     >
                       {isStaff && (
                         <div
-                          className="card-staff-controls"
+                          className="content-card-staff-controls"
                           onClick={(e) => e.stopPropagation()}
                         >
                           <button
                             type="button"
-                            className="staff-btn edit"
+                            className="content-staff-btn content-edit"
                             onClick={() => setEditingArtist(artist)}
                             title="Редактировать артиста"
                           >
@@ -436,7 +436,7 @@ export default function Content() {
                           </button>
                           <button
                             type="button"
-                            className="staff-btn delete"
+                            className="content-staff-btn content-delete"
                             onClick={(e) => handleDeleteArtist(e, artist.id)}
                             title="Удалить артиста"
                           >
@@ -447,14 +447,14 @@ export default function Content() {
                       <img
                         src={artist.avatar || defaultAvatar}
                         alt={artist.name}
-                        className="artist-card-avatar"
+                        className="content-artist-card-avatar"
                       />
-                      <div className="artist-card-info">
-                        <h3 className="artist-card-name">{artist.name}</h3>
+                      <div className="content-artist-card-info">
+                        <h3 className="content-artist-card-name">{artist.name}</h3>
                         <span className="artist-card-genre">
                           {formatGenresToRu(artist)}
                         </span>
-                        <span className="artist-card-plays">
+                        <span className="content-artist-card-plays">
                           {artist.plays_count || 0} прослушиваний
                         </span>
                       </div>

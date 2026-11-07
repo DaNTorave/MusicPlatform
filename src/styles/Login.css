@@ -1,4 +1,4 @@
-.auth-error-global {
+.login-auth-error-global {
   background-color: #fee2e2;
   border: 1px solid #fecaca;
   color: #991b1b;
@@ -11,117 +11,174 @@
   font-size: 0.875rem;
 }
 
-.auth-error-global .error-icon {
-  font-size: 1.25rem;
-}
-
-.auth-form-group input.error {
-  border-color: #dc2626;
-  box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.1);
-}
-
-.auth-form-group input.error:focus {
-  border-color: #dc2626;
-  box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.2);
-}
-
-.auth-form-group input:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.auth-submit-button {
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-}
-
-.spinner {
+.login-spinner {
   display: inline-block;
   width: 1rem;
   height: 1rem;
   border: 2px solid rgba(255, 255, 255, 0.3);
   border-radius: 50%;
   border-top-color: #fff;
-  animation: spin 0.8s ease-in-out infinite;
+  animation: login-login-spin 0.8s ease-in-out infinite;
 }
 
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-.password-input-wrapper {
-  position: relative;
-  display: flex;
-  align-items: center;
-}
-
-.password-input-wrapper input {
-  flex: 1;
-  padding-right: 2.75rem;
-}
-
-.password-toggle {
-  position: absolute;
-  right: 0.75rem;
-  background: none;
-  border: none;
-  cursor: pointer;
-  font-size: 1.25rem;
-  padding: 0.25rem;
-  opacity: 0.6;
-  transition: opacity 0.2s;
-}
-
-.password-toggle:hover {
-  opacity: 1;
-}
-
-.auth-forgot-password {
+.login-auth-forgot-password {
   margin-top: 0.5rem;
   text-align: right;
   font-size: 0.875rem;
 }
 
-.auth-forgot-password a {
+.login-auth-forgot-password a {
   color: #3b82f6;
   cursor: pointer;
   text-decoration: none;
 }
 
-.auth-forgot-password a:hover {
+.login-auth-forgot-password a:hover {
   text-decoration: underline;
 }
 
-.auth-success-global {
-  background-color: #d1fae5;
-  border: 1px solid #a7f3d0;
-  color: #065f46;
-  padding: 0.75rem 1rem;
-  border-radius: 0.5rem;
-  margin-bottom: 1rem;
+.login-auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  animation: login-login-formFadeIn 0.4s ease;
+}
+
+.login-auth-form-title {
+  font-size: 1.75rem;
+  font-weight: 800;
+  color: #14161a;
+  margin: 0 0 2px 0;
+  letter-spacing: -0.5px;
+  background: linear-gradient(135deg, #14161a 0%, #2d3038 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.login-auth-form-subtitle {
+  color: #888;
+  font-size: 0.95rem;
+  margin: -8px 0 4px 0;
+  font-weight: 400;
+}
+
+.login-auth-divider {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  font-size: 0.875rem;
-  animation: slideInError 0.3s ease;
+  gap: 16px;
+  color: #b0a8a8;
+  font-size: 0.85rem;
+  margin: 4px 0;
+  font-weight: 500;
 }
 
-.auth-success-global .success-icon {
-  font-size: 1.25rem;
+.login-auth-divider::before,
+.login-auth-divider::after {
+  content: '';
+  flex: 1;
+  height: 1.5px;
+  background: linear-gradient(90deg, transparent, #e0d8d8, transparent);
 }
 
-@keyframes slideInError {
+.login-social-buttons {
+  display: flex;
+  gap: 12px;
+}
+
+.login-social-button-icon {
+  height: 20px;
+}
+
+.login-auth-form-footer {
+  text-align: center;
+  font-size: 0.9rem;
+  color: #888;
+  margin-top: 4px;
+  padding-top: 4px;
+}
+
+.login-auth-form-footer a {
+  color: #1773cf;
+  text-decoration: none;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+  position: relative;
+}
+
+.login-auth-form-footer a::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: #1773cf;
+  transform: scaleX(0);
+  transition: transform 0.3s ease;
+}
+
+.login-auth-form-footer a:hover::after {
+  transform: scaleX(1);
+}
+
+.login-auth-form-footer a:hover {
+  color: #0f5a9e;
+}
+
+@media (max-width: 560px) {
+  .login-auth-form {
+    gap: 16px;
+  }
+
+  .login-auth-form-title {
+    font-size: 1.5rem;
+  }
+
+  .login-social-buttons {
+    flex-direction: column;
+  }
+
+  .login-auth-form-title {
+    font-size: 1.25rem;
+  }
+
+  .login-social-buttons {
+    flex-direction: column;
+  }
+}
+
+@media (max-width: 400px) {
+  .login-auth-form {
+    gap: 14px;
+  }
+
+  .login-auth-form-title {
+    font-size: 1.3rem;
+  }
+
+  .login-auth-form-subtitle {
+    font-size: 0.85rem;
+  }
+}
+
+@keyframes login-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes login-formFadeIn {
   from {
     opacity: 0;
-    transform: translateY(-8px);
+
+    transform: translateY(10px);
   }
+
   to {
     opacity: 1;
+
     transform: translateY(0);
   }
 }

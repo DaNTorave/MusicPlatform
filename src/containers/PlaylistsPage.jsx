@@ -16,8 +16,7 @@ import editIcon from '../assets/edit-icon.svg';
 import closeIcon from '../assets/close-icon.svg';
 import searchIcon from '../assets/search-icon.svg';
 
-import '../styles/ArtistPage.css';
-import '../styles/Playlists.css';
+import '../styles/PlaylistsPage.css';
 
 export default function PlaylistsPage() {
   // Состояния плейлистов, избранного и модального окна
@@ -117,7 +116,7 @@ export default function PlaylistsPage() {
     isPlaying;
 
   return (
-    <div className="artist-page">
+    <div className="playlists-page-artist-page">
       <PlaylistModal
         isOpen={modalState.isOpen}
         playlist={modalState.playlist}
@@ -127,9 +126,9 @@ export default function PlaylistsPage() {
 
       <div className="playlists-page-header">
         <div>
-          <span className="artist-tag">Моя фонотека</span>
-          <h1 className="artist-title">Плейлисты и избранное</h1>
-          <p className="artist-meta-string" style={{ paddingLeft: 0 }}>
+          <span className="playlists-page-artist-tag">Моя фонотека</span>
+          <h1 className="playlists-page-artist-title">Плейлисты и избранное</h1>
+          <p className="playlists-page-artist-meta-string playlists-count-meta">
             Всего плейлистов: {playlists.length}
           </p>
         </div>
@@ -154,8 +153,8 @@ export default function PlaylistsPage() {
         </div>
       </div>
 
-      <div className="content-search" style={{ marginBottom: '0.5rem' }}>
-        <div className="search-bar-wrapper">
+      <div className="playlists-page-content-search playlists-search-block">
+        <div className="playlists-page-search-bar-wrapper">
           <InputField
             type="text"
             placeholder="Поиск по названию плейлиста..."
@@ -168,17 +167,17 @@ export default function PlaylistsPage() {
         </div>
       </div>
 
-      <div className="artist-section">
+      <div className="playlists-page-artist-section">
         {loading ? (
-          <p className="empty-text">Загрузка коллекции...</p>
+          <p className="playlists-page-empty-text">Загрузка коллекции...</p>
         ) : (
-          <div className="media-cards-grid">
+          <div className="playlists-page-media-cards-grid">
             {/* Первая карточка: Избранное */}
             <div
-              className="media-card favorites-special-card"
+              className="playlists-page-media-card favorites-special-card"
               onClick={() => navigate('/favorites')}
             >
-              <div className="media-card-cover-wrapper favorites-cover-box">
+              <div className="playlists-page-media-card-cover-wrapper favorites-cover-box">
                 <img
                   src={favoriteIcon}
                   alt="Избранное"
@@ -187,25 +186,25 @@ export default function PlaylistsPage() {
                 {favoriteTracks.length > 0 && (
                   <button
                     type="button"
-                    className={`media-card-play-btn ${isFavoritesPlaying ? 'visible' : ''}`}
+                    className={`playlists-page-media-card-play-btn ${isFavoritesPlaying ? 'playlists-page-visible' : ''}`}
                     onClick={handlePlayFavorites}
                     title={isFavoritesPlaying ? 'Пауза' : 'Слушать избранное'}
                   >
                     <img
                       src={isFavoritesPlaying ? pauseIcon : playIcon}
                       alt="Play"
-                      className="player-main-icon"
+                      className="playlists-page-player-main-icon"
                     />
                   </button>
                 )}
               </div>
 
-              <div className="media-card-info">
-                <span className="media-card-title">Избранное</span>
-                <span className="media-card-subtitle">
+              <div className="playlists-page-media-card-info">
+                <span className="playlists-page-media-card-title">Избранное</span>
+                <span className="playlists-page-media-card-subtitle">
                   {favoriteTracks.length} треков
                 </span>
-                <span className="playlist-privacy-badge private">
+                <span className="playlists-page-playlist-privacy-badge playlists-page-private">
                   Личная коллекция
                 </span>
               </div>
@@ -223,18 +222,18 @@ export default function PlaylistsPage() {
               return (
                 <div
                   key={playlist.id}
-                  className="media-card"
+                  className="playlists-page-media-card"
                   onClick={() => navigate(`/playlists/${playlist.id}`)}
                 >
-                  <div className="media-card-cover-wrapper">
+                  <div className="playlists-page-media-card-cover-wrapper">
                     <img
                       src={playlist.cover || defaultCover}
                       alt={playlist.title}
-                      className="media-card-cover"
+                      className="playlists-page-media-card-cover"
                     />
                     <button
                       type="button"
-                      className={`media-card-play-btn ${isPlaylistPlaying ? 'visible' : ''}`}
+                      className={`playlists-page-media-card-play-btn ${isPlaylistPlaying ? 'playlists-page-visible' : ''}`}
                       onClick={(e) => handlePlayPlaylist(e, playlist)}
                       title={
                         isPlaylistPlaying ? 'Пауза' : 'Слушать плейлист'
@@ -243,15 +242,15 @@ export default function PlaylistsPage() {
                       <img
                         src={isPlaylistPlaying ? pauseIcon : playIcon}
                         alt="Play"
-                        className="player-main-icon"
+                        className="playlists-page-player-main-icon"
                       />
                     </button>
                   </div>
 
-                  <div className="media-card-info">
+                  <div className="playlists-page-media-card-info">
                     <div className="playlist-card-title-row">
                       <span
-                        className="media-card-title"
+                        className="playlists-page-media-card-title"
                         title={playlist.title}
                       >
                         {playlist.title}
@@ -260,11 +259,11 @@ export default function PlaylistsPage() {
                         <AgeBadge size="small" />
                       )}
                     </div>
-                    <span className="media-card-subtitle">
+                    <span className="playlists-page-media-card-subtitle">
                       {playlist.tracks_count || 0} треков
                     </span>
                     <span
-                      className={`playlist-privacy-badge ${playlist.is_public ? 'public' : 'private'}`}
+                      className={`playlists-page-playlist-privacy-badge ${playlist.is_public ? 'playlists-page-public' : 'playlists-page-private'}`}
                     >
                       {playlist.is_public
                         ? 'Публичный'
@@ -273,12 +272,12 @@ export default function PlaylistsPage() {
                   </div>
 
                   <div
-                    className="card-staff-controls"
+                    className="playlists-page-card-staff-controls"
                     onClick={(e) => e.stopPropagation()}
                   >
                     <button
                       type="button"
-                      className="staff-btn edit"
+                      className="playlists-page-staff-btn playlists-page-edit"
                       onClick={() =>
                         setModalState({ isOpen: true, playlist })
                       }
@@ -288,7 +287,7 @@ export default function PlaylistsPage() {
                     </button>
                     <button
                       type="button"
-                      className="staff-btn delete"
+                      className="playlists-page-staff-btn playlists-page-delete"
                       onClick={(e) => handleDeletePlaylist(e, playlist.id)}
                       title="Удалить плейлист"
                     >

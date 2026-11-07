@@ -59,7 +59,7 @@ export default function TrackPage() {
 
   if (error || !track) {
     return (
-      <div className="track-page-state error">{error || 'Трек не найден'}</div>
+      <div className="track-page-state track-page-error">{error || 'Трек не найден'}</div>
     );
   }
 
@@ -160,7 +160,7 @@ export default function TrackPage() {
                 {track.album.title}
               </Link>
               {track.album.release_year && (
-                <span style={{ color: '#64748b' }}>
+                <span className="track-page-album-year">
                   {' '}
                   ({track.album.release_year})
                 </span>
@@ -176,14 +176,14 @@ export default function TrackPage() {
           )}
 
           <div className="track-page-stats">
-            <div className="artist-meta">
+            <div className="track-page-artist-meta">
               {track.release_year && (
-                <p className="artist-meta-string">Год: {track.release_year}</p>
+                <p className="track-page-artist-meta-string">Год: {track.release_year}</p>
               )}
-              <p className="artist-meta-string">
+              <p className="track-page-artist-meta-string">
                 Длительность: {formatDuration(track.duration_seconds)}
               </p>
-              <p className="artist-meta-string">
+              <p className="track-page-artist-meta-string">
                 Прослушиваний: {track.plays_count || 0}
               </p>
             </div>

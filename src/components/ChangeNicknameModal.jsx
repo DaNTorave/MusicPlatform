@@ -7,6 +7,9 @@ import Button from './Button';
 
 import closeIcon from '../assets/close-icon.svg';
 
+import '../styles/ChangeNicknameModal.css';
+
+
 export function ChangeNicknameContent({
   currentNickname,
   onNicknameUpdated,
@@ -64,9 +67,9 @@ export function ChangeNicknameContent({
   };
 
   return (
-    <form className="auth-form" onSubmit={handleSubmit}>
-      {errorMsg && <div className="auth-error-global">{errorMsg}</div>}
-      {successMsg && <div className="auth-success-global">{successMsg}</div>}
+    <form className="change-nickname-modal-auth-form" onSubmit={handleSubmit}>
+      {errorMsg && <div className="change-nickname-modal-auth-error-global">{errorMsg}</div>}
+      {successMsg && <div className="change-nickname-modal-auth-success-global">{successMsg}</div>}
 
       <InputField
         id="new-nickname"
@@ -100,17 +103,17 @@ export default function ChangeNicknameModal({
 
   return (
     <div
-      className="modal-background"
+      className="change-nickname-modal-modal-background"
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
-      <div className="modal-window">
-        <div className="modal-window-top-buttons">
-          <button type="button" className="modal-window-top-button active">
+      <div className="change-nickname-modal-modal-window">
+        <div className="change-nickname-modal-modal-window-top-buttons">
+          <button type="button" className="change-nickname-modal-modal-window-top-button change-nickname-modal-active">
             Смена никнейма
           </button>
           <button
             type="button"
-            className="modal-close-button"
+            className="change-nickname-modal-modal-close-button"
             onClick={onClose}
             title="Закрыть"
           >
@@ -118,7 +121,7 @@ export default function ChangeNicknameModal({
           </button>
         </div>
 
-        <div className="modal-window-content">
+        <div className="change-nickname-modal-modal-window-content">
           <ChangeNicknameContent
             currentNickname={currentNickname}
             onNicknameUpdated={onNicknameUpdated}

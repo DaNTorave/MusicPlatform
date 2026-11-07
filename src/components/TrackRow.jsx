@@ -188,7 +188,7 @@ export default function TrackRow({
     if (!isMenuOpen && menuWrapperRef.current) {
       const buttonRect = menuWrapperRef.current.getBoundingClientRect();
       const container = menuWrapperRef.current.closest(
-        '.scrollable-chart-list, .album-tracks-container, .artist-section, .profile-section',
+        '[class*="scrollable-chart-list"], [class*="album-tracks-container"], [class*="artist-section"], [class*="profile-favorites-section"]',
       );
 
       const estimatedMenuHeight = onRemoveFromPlaylist ? 195 : 150;
@@ -245,7 +245,7 @@ export default function TrackRow({
 
             <button
               type="button"
-              className={`track-cover-play-btn ${isPlaying ? 'visible' : ''}`}
+              className={`track-cover-play-btn ${isPlaying ? 'track-row-visible' : ''}`}
               title={isPlaying ? 'Пауза' : 'Слушать'}
               onClick={(e) => {
                 e.stopPropagation();
@@ -262,7 +262,7 @@ export default function TrackRow({
         ) : (
           <button
             type="button"
-            className={`track-play-btn ${isPlaying ? 'visible' : ''}`}
+            className={`track-play-btn ${isPlaying ? 'track-row-visible' : ''}`}
             title={isPlaying ? 'Пауза' : 'Слушать'}
             onClick={(e) => {
               e.stopPropagation();
@@ -290,7 +290,7 @@ export default function TrackRow({
             {track.age_restriction && <AgeBadge size="small" />}
             {isCover && (
               <span
-                className={`track-cover-badge ${originalTrack ? 'clickable' : ''}`}
+                className={`track-cover-badge ${originalTrack ? 'track-row-clickable' : ''}`}
                 onClick={handleCoverClick}
                 title={
                   originalTrack

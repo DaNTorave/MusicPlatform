@@ -3,8 +3,7 @@ import Button from './Button';
 import closeIcon from '../assets/close-icon.svg';
 import alertIcon from '../assets/alert-circle.svg';
 
-import '../styles/AuthModal.css';
-import '../styles/ModerationModal.css';
+import '../styles/RejectReasonModal.css';
 
 // Типовые шаблоны причин отклонения
 const REJECTION_PRESETS = [
@@ -37,17 +36,17 @@ export default function RejectReasonModal({
 
   return (
     <div
-      className="modal-background"
+      className="reject-reason-modal-modal-background"
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
-      <div className="modal-window" style={{ maxWidth: '520px' }}>
-        <div className="modal-window-top-buttons">
-          <button type="button" className="modal-window-top-button active">
+      <div className="reject-reason-modal-modal-window reject-reason-modal-window">
+        <div className="reject-reason-modal-modal-window-top-buttons">
+          <button type="button" className="reject-reason-modal-modal-window-top-button reject-reason-modal-active">
             Отклонение заявки
           </button>
           <button
             type="button"
-            className="modal-close-button"
+            className="reject-reason-modal-modal-close-button"
             onClick={onClose}
             title="Закрыть"
           >
@@ -55,38 +54,30 @@ export default function RejectReasonModal({
           </button>
         </div>
 
-        <div className="modal-window-content">
-          <form className="auth-form" onSubmit={handleSubmit}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#b91c1c' }}>
-              <img
-                src={alertIcon}
-                alt="Внимание"
-                style={{
-                  width: '20px',
-                  height: '20px',
-                  filter: 'invert(24%) sepia(88%) saturate(3412%) hue-rotate(352deg) brightness(92%) contrast(93%)'
-                }}
-              />
-              <span style={{ fontWeight: 700, fontSize: '0.95rem' }}>
+        <div className="reject-reason-modal-modal-window-content">
+          <form className="reject-reason-modal-auth-form" onSubmit={handleSubmit}>
+            <div className="reject-reason-alert-row">
+              <img src={alertIcon} alt="Внимание" className="reject-reason-alert-icon" />
+              <span className="reject-reason-alert-title">
                 Укажите причину для автора
               </span>
             </div>
 
-            <p className="auth-form-subtitle" style={{ marginTop: 0 }}>
+            <p className="reject-reason-modal-auth-form-subtitle reject-reason-subtitle">
               Причина отклонения для <strong>«{itemTitle || 'материала'}»</strong> будет отправлена автору в уведомлении:
             </p>
 
             {/* Быстрые шаблоны причин */}
             <div>
-              <label style={{ fontSize: '0.8rem', fontWeight: 600, color: '#64748b', display: 'block', marginBottom: '6px' }}>
+              <label className="reject-reason-presets-label">
                 Быстрые шаблоны:
               </label>
-              <div className="reject-presets">
+              <div className="reject-reason-modal-reject-presets">
                 {REJECTION_PRESETS.map((preset, idx) => (
                   <button
                     key={idx}
                     type="button"
-                    className={`reject-preset-chip ${reason === preset ? 'active' : ''}`}
+                    className={`reject-reason-modal-reject-preset-chip ${reason === preset ? 'reject-reason-modal-active' : ''}`}
                     onClick={() => handleSelectPreset(preset)}
                   >
                     {preset}
@@ -95,7 +86,7 @@ export default function RejectReasonModal({
               </div>
             </div>
 
-            <div className="auth-form-group">
+            <div className="reject-reason-modal-auth-form-group">
               <label>Подробная причина отклонения *</label>
               <textarea
                 value={reason}
@@ -103,13 +94,12 @@ export default function RejectReasonModal({
                 placeholder="Опишите, что именно необходимо исправить (качество звука, обложка, теги)..."
                 required
                 disabled={loading}
-                className="moderation-textarea"
-                style={{ minHeight: '90px' }}
+                className="reject-reason-modal-moderation-textarea reject-reason-textarea"
                 autoFocus
               />
             </div>
 
-            <div className="modal-actions-row">
+            <div className="reject-reason-modal-modal-actions-row">
               <Button
                 type="button"
                 variant="secondary"

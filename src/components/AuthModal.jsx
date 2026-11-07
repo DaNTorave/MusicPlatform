@@ -12,9 +12,9 @@ import github_logo from '../assets/github.svg';
 import eye from '../assets/eye.svg';
 import eye_crossed from '../assets/eye-crossed.svg';
 
-import '../styles/Modal.css';
+import '../styles/AuthModal.css';
 
-// Компонент содержимого авторизации, регистрации и сброса пароля
+
 export default function AuthModal({
   activeTab = 'login',
   onTabChange,
@@ -261,10 +261,10 @@ export default function AuthModal({
     if (/(?=.*\d)/.test(pwd)) score++;
     if (/(?=.*[!@#$%^&*])/.test(pwd)) score++;
 
-    if (score <= 2) return { label: 'Слабый', class: 'weak' };
-    if (score <= 3) return { label: 'Средний', class: 'medium' };
-    if (score <= 4) return { label: 'Сильный', class: 'strong' };
-    return { label: 'Очень сильный', class: 'very-strong' };
+    if (score <= 2) return { label: 'Слабый', class: 'auth-modal-weak' };
+    if (score <= 3) return { label: 'Средний', class: 'auth-modal-medium' };
+    if (score <= 4) return { label: 'Сильный', class: 'auth-modal-strong' };
+    return { label: 'Очень сильный', class: 'auth-modal-very-strong' };
   };
 
   // Обновление значения поля регистрации с проверкой валидации
@@ -341,12 +341,12 @@ export default function AuthModal({
     const isLoginEmpty = !loginOrEmail.trim() || !loginPassword;
 
     return (
-      <form className="auth-form" onSubmit={handleLoginSubmit}>
-        <h2 className="auth-form-title">Добро пожаловать!</h2>
-        <p className="auth-form-subtitle">Войдите, чтобы продолжить</p>
+      <form className="auth-modal-auth-form" onSubmit={handleLoginSubmit}>
+        <h2 className="auth-modal-auth-form-title">Добро пожаловать!</h2>
+        <p className="auth-modal-auth-form-subtitle">Войдите, чтобы продолжить</p>
 
         {loginError && (
-          <div className="auth-error-global" role="alert">
+          <div className="auth-modal-auth-error-global" role="alert">
             {loginError}
           </div>
         )}
@@ -381,7 +381,7 @@ export default function AuthModal({
           disabled={loadingLogin}
           autoComplete="current-password"
         >
-          <div className="auth-forgot-password">
+          <div className="auth-modal-auth-forgot-password">
             <a onClick={() => onTabChange && onTabChange('reset')}>
               Забыли пароль?
             </a>
@@ -396,7 +396,7 @@ export default function AuthModal({
         >
           {loadingLogin ? (
             <>
-              <span className="spinner"></span>
+              <span className="auth-modal-spinner"></span>
               Вход...
             </>
           ) : (
@@ -404,16 +404,16 @@ export default function AuthModal({
           )}
         </Button>
 
-        <div className="auth-divider">или</div>
+        <div className="auth-modal-auth-divider">или</div>
 
-        <div className="social-buttons">
+        <div className="auth-modal-social-buttons">
           <Button
             type="button"
             variant="secondary"
             disabled={loadingLogin}
             onClick={() => alert('Вход через Google')}
           >
-            <img className="social-button-icon" src={google_logo} alt="Google" />
+            <img className="auth-modal-social-button-icon" src={google_logo} alt="Google" />
             Google
           </Button>
           <Button
@@ -422,12 +422,12 @@ export default function AuthModal({
             disabled={loadingLogin}
             onClick={() => alert('Вход через GitHub')}
           >
-            <img className="social-button-icon" src={github_logo} alt="GitHub" />
+            <img className="auth-modal-social-button-icon" src={github_logo} alt="GitHub" />
             GitHub
           </Button>
         </div>
 
-        <div className="auth-form-footer">
+        <div className="auth-modal-auth-form-footer">
           Нет аккаунта?{' '}
           <a onClick={() => onTabChange && onTabChange('register')}>
             Зарегистрироваться
@@ -448,29 +448,29 @@ export default function AuthModal({
     const passwordStrength = getPasswordStrength(regPassword);
 
     return (
-      <div className="auth-form-wrapper">
+      <div className="auth-modal-auth-form-wrapper">
         {regFieldError && (
-          <div className="auth-error-global" role="alert">
+          <div className="auth-modal-auth-error-global" role="alert">
             {regFieldError}
           </div>
         )}
 
         {isRegistrationComplete && (
-          <div className="auth-success-global" role="alert">
+          <div className="auth-modal-auth-success-global" role="alert">
             Регистрация успешна. Выполняется вход...
           </div>
         )}
 
         {regStep === 'credentials' ? (
-          <form className="auth-form" onSubmit={handleProceedToPreferences}>
-            <h2 className="auth-form-title">Создать аккаунт</h2>
-            <p className="auth-form-subtitle">
+          <form className="auth-modal-auth-form" onSubmit={handleProceedToPreferences}>
+            <h2 className="auth-modal-auth-form-title">Создать аккаунт</h2>
+            <p className="auth-modal-auth-form-subtitle">
               Заполните регистрационные данные
             </p>
 
-            <div className="auth-form-group">
+            <div className="auth-modal-auth-form-group">
               <label htmlFor="register-login">
-                Логин <span className="required-star">*</span>
+                Логин <span className="auth-modal-required-star">*</span>
               </label>
               <input
                 id="register-login"
@@ -480,16 +480,16 @@ export default function AuthModal({
                 onChange={(e) => handleRegFieldChange('login', e.target.value)}
                 required
                 disabled={loadingRegister}
-                className={regErrors.login ? 'error' : ''}
+                className={regErrors.login ? 'auth-modal-error' : ''}
               />
               {regErrors.login && (
-                <span className="auth-error">{regErrors.login}</span>
+                <span className="auth-modal-auth-error">{regErrors.login}</span>
               )}
             </div>
 
-            <div className="auth-form-group">
+            <div className="auth-modal-auth-form-group">
               <label htmlFor="register-email">
-                Email <span className="required-star">*</span>
+                Email <span className="auth-modal-required-star">*</span>
               </label>
               <input
                 id="register-email"
@@ -499,16 +499,16 @@ export default function AuthModal({
                 onChange={(e) => handleRegFieldChange('email', e.target.value)}
                 required
                 disabled={loadingRegister}
-                className={regErrors.email ? 'error' : ''}
+                className={regErrors.email ? 'auth-modal-error' : ''}
               />
               {regErrors.email && (
-                <span className="auth-error">{regErrors.email}</span>
+                <span className="auth-modal-auth-error">{regErrors.email}</span>
               )}
             </div>
 
-            <div className="auth-form-group">
+            <div className="auth-modal-auth-form-group">
               <label htmlFor="register-nickname">
-                Никнейм <span className="optional-label">(необязательно)</span>
+                Никнейм <span className="auth-modal-optional-label">(необязательно)</span>
               </label>
               <input
                 id="register-nickname"
@@ -519,18 +519,18 @@ export default function AuthModal({
                   handleRegFieldChange('nickname', e.target.value)
                 }
                 disabled={loadingRegister}
-                className={regErrors.nickname ? 'error' : ''}
+                className={regErrors.nickname ? 'auth-modal-error' : ''}
               />
               {regErrors.nickname && (
-                <span className="auth-error">{regErrors.nickname}</span>
+                <span className="auth-modal-auth-error">{regErrors.nickname}</span>
               )}
             </div>
 
-            <div className="auth-form-group">
+            <div className="auth-modal-auth-form-group">
               <label htmlFor="register-password">
-                Пароль <span className="required-star">*</span>
+                Пароль <span className="auth-modal-required-star">*</span>
               </label>
-              <div className="password-input-wrapper">
+              <div className="auth-modal-password-input-wrapper">
                 <input
                   id="register-password"
                   type={showRegPassword ? 'text' : 'password'}
@@ -542,32 +542,32 @@ export default function AuthModal({
                   required
                   minLength={8}
                   disabled={loadingRegister}
-                  className={regErrors.password ? 'error' : ''}
+                  className={regErrors.password ? 'auth-modal-error' : ''}
                 />
                 <button
                   type="button"
-                  className="password-toggle"
+                  className="auth-modal-password-toggle"
                   onClick={() => setShowRegPassword(!showRegPassword)}
                   tabIndex="-1"
                   disabled={loadingRegister}
                 >
                   <img
-                    className="password-toggle-icon"
+                    className="auth-modal-password-toggle-icon"
                     src={showRegPassword ? eye_crossed : eye}
                     alt="Видимость пароля"
                   />
                 </button>
               </div>
               {regErrors.password && (
-                <span className="auth-error">{regErrors.password}</span>
+                <span className="auth-modal-auth-error">{regErrors.password}</span>
               )}
               {regPassword && !regErrors.password && passwordStrength && (
-                <div className="password-strength">
+                <div className="auth-modal-password-strength">
                   <div
-                    className={`password-strength-bar ${passwordStrength.class}`}
+                    className={`auth-modal-password-strength-bar ${passwordStrength.class}`}
                   ></div>
                   <span
-                    className={`password-strength-text ${passwordStrength.class}`}
+                    className={`auth-modal-password-strength-text ${passwordStrength.class}`}
                   >
                     {passwordStrength.label}
                   </span>
@@ -575,11 +575,11 @@ export default function AuthModal({
               )}
             </div>
 
-            <div className="auth-form-group">
+            <div className="auth-modal-auth-form-group">
               <label htmlFor="register-confirm-password">
-                Подтверждение пароля <span className="required-star">*</span>
+                Подтверждение пароля <span className="auth-modal-required-star">*</span>
               </label>
-              <div className="password-input-wrapper">
+              <div className="auth-modal-password-input-wrapper">
                 <input
                   id="register-confirm-password"
                   type={showRegConfirmPassword ? 'text' : 'password'}
@@ -591,11 +591,11 @@ export default function AuthModal({
                   required
                   minLength={8}
                   disabled={loadingRegister}
-                  className={regErrors.confirmPassword ? 'error' : ''}
+                  className={regErrors.confirmPassword ? 'auth-modal-error' : ''}
                 />
                 <button
                   type="button"
-                  className="password-toggle"
+                  className="auth-modal-password-toggle"
                   onClick={() =>
                     setShowRegConfirmPassword(!showRegConfirmPassword)
                   }
@@ -603,36 +603,36 @@ export default function AuthModal({
                   disabled={loadingRegister}
                 >
                   <img
-                    className="password-toggle-icon"
+                    className="auth-modal-password-toggle-icon"
                     src={showRegConfirmPassword ? eye_crossed : eye}
                     alt="Видимость пароля"
                   />
                 </button>
               </div>
               {regErrors.confirmPassword && (
-                <span className="auth-error">{regErrors.confirmPassword}</span>
+                <span className="auth-modal-auth-error">{regErrors.confirmPassword}</span>
               )}
             </div>
 
             <button
               type="submit"
-              className="auth-submit-button"
+              className="auth-modal-auth-submit-button"
               disabled={loadingRegister || hasRegErrors || isRegEmpty}
             >
               Далее
             </button>
 
-            <div className="auth-divider">или</div>
+            <div className="auth-modal-auth-divider">или</div>
 
-            <div className="social-buttons">
+            <div className="auth-modal-social-buttons">
               <button
                 type="button"
-                className="social-button"
+                className="auth-modal-social-button"
                 disabled={loadingRegister}
                 onClick={() => alert('Вход через Google')}
               >
                 <img
-                  className="social-button-icon"
+                  className="auth-modal-social-button-icon"
                   src={google_logo}
                   alt="Google"
                 />
@@ -640,12 +640,12 @@ export default function AuthModal({
               </button>
               <button
                 type="button"
-                className="social-button"
+                className="auth-modal-social-button"
                 disabled={loadingRegister}
                 onClick={() => alert('Вход через GitHub')}
               >
                 <img
-                  className="social-button-icon"
+                  className="auth-modal-social-button-icon"
                   src={github_logo}
                   alt="GitHub"
                 />
@@ -653,7 +653,7 @@ export default function AuthModal({
               </button>
             </div>
 
-            <div className="auth-form-footer">
+            <div className="auth-modal-auth-form-footer">
               Уже есть аккаунт?{' '}
               <a onClick={() => onTabChange && onTabChange('login')}>Войти</a>
             </div>

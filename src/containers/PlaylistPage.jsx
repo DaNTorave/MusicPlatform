@@ -13,8 +13,7 @@ import playIcon from '../assets/play-icon.svg';
 import pauseIcon from '../assets/pause-icon.svg';
 import shareIcon from '../assets/share-icon.svg';
 
-import '../styles/ArtistPage.css';
-import '../styles/Playlists.css';
+import '../styles/PlaylistPage.css';
 
 export default function PlaylistPage() {
   const { id } = useParams();
@@ -88,12 +87,12 @@ export default function PlaylistPage() {
   };
 
   if (loading) {
-    return <div className="artist-page-state">Загрузка плейлиста...</div>;
+    return <div className="playlist-page-artist-page-state">Загрузка плейлиста...</div>;
   }
 
   if (error || !playlist) {
     return (
-      <div className="artist-page-state error">
+      <div className="playlist-page-artist-page-state playlist-page-error">
         {error || 'Плейлист не найден'}
       </div>
     );
@@ -121,7 +120,7 @@ export default function PlaylistPage() {
   };
 
   return (
-    <div className="artist-page">
+    <div className="playlist-page-artist-page">
       <PlaylistModal
         isOpen={isEditOpen}
         playlist={playlist}
@@ -129,18 +128,18 @@ export default function PlaylistPage() {
         onSuccess={fetchPlaylist}
       />
 
-      <div className="artist-header">
+      <div className="playlist-page-artist-header">
         <img
           src={playlist.cover || defaultCover}
           alt={playlist.title}
-          className="album-cover-large"
+          className="playlist-page-album-cover-large"
         />
 
-        <div className="artist-info">
+        <div className="playlist-page-artist-info">
           <div className="playlist-header-badges">
-            <span className="artist-tag">Плейлист</span>
+            <span className="playlist-page-artist-tag">Плейлист</span>
             <span
-              className={`playlist-privacy-badge ${playlist.is_public ? 'public' : 'private'}`}
+              className={`playlist-page-playlist-privacy-badge ${playlist.is_public ? 'playlist-page-public' : 'playlist-page-private'}`}
             >
               {playlist.is_public
                 ? 'Отображается в профиле'
@@ -148,31 +147,31 @@ export default function PlaylistPage() {
             </span>
           </div>
 
-          <div className="artist-title-row">
-            <h1 className="artist-title">{playlist.title}</h1>
+          <div className="playlist-page-artist-title-row">
+            <h1 className="playlist-page-artist-title">{playlist.title}</h1>
             {playlist.has_age_restriction && <AgeBadge size="medium" />}
           </div>
 
-          <div className="artist-meta">
+          <div className="playlist-page-artist-meta">
             {playlist.owner && (
-              <p className="artist-meta-string" style={{ paddingLeft: 0 }}>
+              <p className="playlist-page-artist-meta-string playlist-owner-meta">
                 Автор:{' '}
                 <Link
                   to={`/profile/${playlist.owner.id}`}
-                  className="artist-link"
+                  className="playlist-page-artist-link"
                 >
                   {playlist.owner.nickname || playlist.owner.login}
                 </Link>
               </p>
             )}
-            <p className="artist-meta-string">Треков: {tracks.length}</p>
+            <p className="playlist-page-artist-meta-string">Треков: {tracks.length}</p>
           </div>
 
           <div className="playlist-page-actions">
             {tracks.length > 0 && (
               <button
                 type="button"
-                className="track-page-main-play-btn"
+                className="playlist-page-track-page-main-play-btn"
                 onClick={handlePlayAll}
               >
                 <img src={isPlaylistPlaying ? pauseIcon : playIcon} alt="Play" />
@@ -214,8 +213,8 @@ export default function PlaylistPage() {
         </div>
       </div>
 
-      <div className="artist-section">
-        <div className="all-tracks-action">
+      <div className="playlist-page-artist-section">
+        <div className="playlist-page-all-tracks-action">
           <h2>Список композиций</h2>
           <button type="button" onClick={() => navigate(-1)}>
             Назад
@@ -223,12 +222,12 @@ export default function PlaylistPage() {
         </div>
 
         {tracks.length === 0 ? (
-          <p className="empty-text">
+          <p className="playlist-page-empty-text">
             В этом плейлисте пока нет композиций. Добавьте треки через кнопку с
             тремя точками рядом с любым треком.
           </p>
         ) : (
-          <div className="album-tracks-container">
+          <div className="playlist-page-album-tracks-container">
             {tracks.map((track, idx) => (
               <TrackRow
                 key={track.id}

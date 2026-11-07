@@ -10,7 +10,7 @@ import AgeBadge from '../components/AgeBadge';
 
 import defaultCover from '../assets/Шотландская веслоухая.jpg';
 
-import '../styles/ArtistPage.css';
+import '../styles/AlbumPage.css';
 
 export default function AlbumPage() {
   const { id } = useParams();
@@ -82,12 +82,12 @@ export default function AlbumPage() {
   };
 
   if (loading) {
-    return <div className="artist-page-state">Загрузка альбома...</div>;
+    return <div className="album-page-artist-page-state">Загрузка альбома...</div>;
   }
 
   if (error || !album) {
     return (
-      <div className="artist-page-state error">
+      <div className="album-page-artist-page-state album-page-error">
         {error || 'Альбом не найден'}
       </div>
     );
@@ -106,7 +106,7 @@ export default function AlbumPage() {
     }));
 
   return (
-    <div className="artist-page">
+    <div className="album-page-artist-page">
       <EditEntityModal
         isOpen={editModal.isOpen}
         onClose={() => setEditModal({ isOpen: false, item: null, type: null })}
@@ -115,29 +115,29 @@ export default function AlbumPage() {
         onSuccess={fetchAlbum}
       />
 
-      <div className="artist-header">
+      <div className="album-page-artist-header">
         <img
           src={album.cover || defaultCover}
           alt={album.title}
-          className="album-cover-large"
+          className="album-page-album-cover-large"
         />
-        <div className="artist-info">
-          <span className="artist-tag">Альбом</span>
-          <div className="artist-title-row">
-            <h1 className="artist-title">{album.title}</h1>
+        <div className="album-page-artist-info">
+          <span className="album-page-artist-tag">Альбом</span>
+          <div className="album-page-artist-title-row">
+            <h1 className="album-page-artist-title">{album.title}</h1>
             {album.has_age_restriction && <AgeBadge size="medium" />}
           </div>
-          <div className="artist-meta">
-            <p className="artist-meta-string">
+          <div className="album-page-artist-meta">
+            <p className="album-page-artist-meta-string">
               Исполнитель:{' '}
-              <Link to={`/artists/${album.artist?.id}`} className="artist-link">
+              <Link to={`/artists/${album.artist?.id}`} className="album-page-artist-link">
                 {album.artist?.name}
               </Link>
             </p>
             {album.release_year && (
-              <p className="artist-meta-string">Год: {album.release_year}</p>
+              <p className="album-page-artist-meta-string">Год: {album.release_year}</p>
             )}
-            <p className="artist-meta-string">
+            <p className="album-page-artist-meta-string">
               Лайков: {album.likes_count || 0}
             </p>
           </div>
@@ -158,15 +158,15 @@ export default function AlbumPage() {
         </div>
       </div>
 
-      <div className="artist-section">
-        <div className="all-tracks-action">
+      <div className="album-page-artist-section">
+        <div className="album-page-all-tracks-action">
           <h2>Список композиций</h2>
           <button onClick={() => navigate(-1)}>&lt; Назад</button>
         </div>
         {!album.tracks || album.tracks.length === 0 ? (
-          <p className="empty-text">В альбоме пока нет доступных треков</p>
+          <p className="album-page-empty-text">В альбоме пока нет доступных треков</p>
         ) : (
-          <div className="album-tracks-container">
+          <div className="album-page-album-tracks-container">
             {formattedAlbumTracks.map((track, idx) => (
               <TrackRow
                 key={track.id}

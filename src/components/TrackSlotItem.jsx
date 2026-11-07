@@ -8,9 +8,9 @@ import closeIcon from '../assets/close-icon.svg';
 import playIcon from '../assets/play-icon.svg';
 import pauseIcon from '../assets/pause-icon.svg';
 
-import '../styles/AuthModal.css';
+import '../styles/TrackSlotItem.css';
 
-// Слот трека в списке альбома
+
 export default function TrackSlotItem({
   index,
   track,
@@ -98,7 +98,7 @@ export default function TrackSlotItem({
         {showPlay && onPlay && (
           <button
             type="button"
-            className="track-slot-play-btn"
+            className="track-slot-item-track-slot-play-btn"
             onClick={() => onPlay(track)}
             title={isPlaying ? 'Пауза' : 'Слушать'}
           >
@@ -138,7 +138,7 @@ export default function TrackSlotItem({
             ref={fileInputRef}
             type="file"
             accept="audio/*"
-            style={{ display: 'none' }}
+            className="track-slot-hidden-file-input"
             onChange={(e) => {
               const file = e.target.files[0];
               if (file) onChange(index, 'audio', file);
@@ -151,7 +151,7 @@ export default function TrackSlotItem({
         {mainArtist && (
           <button
             type="button"
-            className={`track-slot-nav-btn track-slot-collab-btn ${collaboratorIds.length > 0 ? 'is-active' : ''}`}
+            className={`track-slot-nav-btn track-slot-collab-btn ${collaboratorIds.length > 0 ? 'track-slot-item-is-active' : ''}`}
             onClick={() => setShowCollaborators(!showCollaborators)}
             disabled={disabled}
             title="Настроить соавторов трека"
@@ -165,7 +165,7 @@ export default function TrackSlotItem({
         {/* Кнопка переключения кавера */}
         <button
           type="button"
-          className={`track-slot-nav-btn track-slot-cover-btn ${isCover ? 'is-active' : ''}`}
+          className={`track-slot-nav-btn track-slot-cover-btn ${isCover ? 'track-slot-item-is-active' : ''}`}
           onClick={toggleCover}
           disabled={disabled}
           title="Отметить трек как кавер"
@@ -217,9 +217,9 @@ export default function TrackSlotItem({
 
       {/* Панель выбора оригинального трека для кавера */}
       {isCover && showCoverPanel && (
-        <div className="meta-box-card meta-box-card-nested">
-          <div className="meta-box-header">
-            <span className="meta-box-title">Оригинальный трек для кавера</span>
+        <div className="track-slot-item-meta-box-card meta-box-card-nested">
+          <div className="track-slot-item-meta-box-header">
+            <span className="track-slot-item-meta-box-title">Оригинальный трек для кавера</span>
           </div>
           <OriginalTrackManager
             availableTracks={availableTracks}

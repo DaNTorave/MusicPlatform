@@ -1,0 +1,167 @@
+.album-page-artist-page {
+  display: flex;
+  flex-direction: column;
+  gap: 2.5rem;
+  width: 100%;
+  background: #ffffff;
+  border-radius: 20px;
+  padding: 3rem;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.04);
+  border: 1px solid #f0eded;
+}
+
+.album-page-artist-page-state {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 250px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #666;
+}
+
+.album-page-artist-page-state.album-page-error {
+  color: #e74c3c;
+}
+
+.album-page-artist-header {
+  display: flex;
+  align-items: center;
+  gap: 2.5rem;
+  border-bottom: 1px solid #f0ecec;
+  padding-bottom: 2.5rem;
+}
+
+.album-page-artist-tag {
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: #1773cf;
+  background: #eef6fc;
+  padding: 4px 10px;
+  border-radius: 20px;
+  width: fit-content;
+}
+
+.album-page-artist-title {
+  font-size: 2.2rem;
+  font-weight: 800;
+  color: #14161a;
+  margin: 0 0 6px 0;
+}
+
+.album-page-artist-meta {
+  color: #666;
+  display: flex;
+  font-size: 0.95rem;
+}
+
+.album-page-artist-meta-string {
+  padding: 0 7px;
+}
+
+.album-page-album-cover-large {
+  width: 160px;
+  height: 160px;
+  border-radius: 16px;
+  object-fit: cover;
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+}
+
+.album-page-artist-link {
+  color: #1773cf;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.album-page-artist-link:hover {
+  text-decoration: underline;
+}
+
+.album-page-artist-section {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.album-page-all-tracks-action h2 {
+  font-size: 1.4rem;
+  font-weight: 800;
+  color: #14161a;
+  letter-spacing: -0.3px;
+}
+
+.album-page-empty-text {
+  color: #888;
+  font-size: 0.95rem;
+  font-style: italic;
+}
+
+.album-page-album-tracks-container {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  min-height: 200px;
+}
+
+@media (max-width: 768px) {
+  .album-page-artist-page {
+    padding: 1.5rem;
+  }
+
+  .album-page-artist-header {
+    flex-direction: column;
+
+    text-align: center;
+
+    gap: 1.5rem;
+  }
+}
+
+.album-page-all-tracks-action {
+  display: flex;
+  justify-content: space-between;
+}
+
+.album-page-all-tracks-action button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 14px;
+  height: 32px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background: #eef6fc;
+  color: #1773cf;
+  font-size: 0.95rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  user-select: none;
+}
+
+.album-page-all-tracks-action button:hover {
+  background: #e0f2fe;
+  color: #0f5a9e;
+  transform: translateX(-3px);
+}
+
+.album-page-all-tracks-action button:active {
+  transform: translateX(-1px) scale(0.98);
+}
+
+.album-page-artist-title-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.artist-edit-btn-wrapper {
+  margin-top: 12px;
+}
+
+.album-page-artist-info {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}

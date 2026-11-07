@@ -225,7 +225,7 @@ export default function PlayerPage() {
               <h1 className="player-page-title">{currentTrack.title}</h1>
 
               {currentTrack.age_restriction && (
-                <div style={{ marginTop: '8px' }}>
+                <div className="player-page-age-wrapper">
                   <AgeBadge size="large" />
                 </div>
               )}
@@ -255,7 +255,7 @@ export default function PlayerPage() {
 
             {isCover && (
               <div
-                className={`player-page-cover-badge ${originalTrack ? 'clickable' : ''}`}
+                className={`player-page-cover-badge ${originalTrack ? 'player-page-clickable' : ''}`}
                 onClick={handlePlayOriginal}
                 title={
                   originalTrack ? `Оригинал: ${originalTrack.title}` : 'Кавер'
@@ -293,7 +293,7 @@ export default function PlayerPage() {
             <div className="player-page-controls">
               <button
                 type="button"
-                className={`player-page-btn-secondary player-page-side-btn ${isCurrentFav ? 'is-fav' : ''}`}
+                className={`player-page-btn-secondary player-page-side-btn ${isCurrentFav ? 'player-page-is-fav' : ''}`}
                 onClick={handleFavoriteClick}
                 title={isCurrentFav ? 'Удалить из избранного' : 'В избранное'}
               >

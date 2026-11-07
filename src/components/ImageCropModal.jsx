@@ -3,6 +3,7 @@ import Button from './Button';
 import closeIcon from '../assets/close-icon.svg';
 import '../styles/ImageCropModal.css';
 
+
 export default function ImageCropModal({
   isOpen,
   imageSrc,
@@ -158,19 +159,19 @@ export default function ImageCropModal({
 
   return (
     <div
-      className="modal-background image-crop-modal-backdrop"
+      className="image-crop-modal-modal-background image-crop-modal-backdrop"
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
-      <div className="modal-window image-crop-modal-window">
-        <div className="modal-window-top-buttons">
-          <button type="button" className="modal-window-top-button active">
+      <div className="image-crop-modal-modal-window image-crop-modal-window">
+        <div className="image-crop-modal-modal-window-top-buttons">
+          <button type="button" className="image-crop-modal-modal-window-top-button image-crop-modal-active">
             {cropShape === 'circle'
               ? 'Выбор области аватара'
               : 'Выбор области обложки'}
           </button>
           <button
             type="button"
-            className="modal-close-button"
+            className="image-crop-modal-modal-close-button"
             onClick={onClose}
             title="Закрыть"
           >
@@ -178,7 +179,7 @@ export default function ImageCropModal({
           </button>
         </div>
 
-        <div className="modal-window-content">
+        <div className="image-crop-modal-modal-window-content">
           <p className="image-crop-hint">
             Перетаскивайте изображение мышью и используйте ползунок масштаба для
             выбора области
@@ -197,15 +198,12 @@ export default function ImageCropModal({
               src={imageSrc}
               alt="Оригинал"
               className="image-crop-source"
-              style={{
-                transform: `translate(${position.x}px, ${position.y}px) scale(${scale})`,
-                transformOrigin: 'top left',
-              }}
+              style={{ transform: `translate(${position.x}px, ${position.y}px) scale(${scale})` }}
               draggable={false}
             />
 
             <div
-              className={`image-crop-mask ${cropShape === 'circle' ? 'circle' : 'square'}`}
+              className={`image-crop-mask ${cropShape === 'circle' ? 'image-crop-modal-circle' : 'square'}`}
             />
           </div>
 
@@ -222,7 +220,7 @@ export default function ImageCropModal({
             />
           </div>
 
-          <div className="modal-actions-row">
+          <div className="image-crop-modal-modal-actions-row">
             <Button type="button" variant="secondary" onClick={onClose}>
               Отмена
             </Button>

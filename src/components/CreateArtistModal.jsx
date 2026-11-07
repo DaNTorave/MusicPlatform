@@ -6,9 +6,9 @@ import Button from './Button';
 import ImageCropModal from './ImageCropModal';
 import defaultAvatar from '../assets/Шотландская веслоухая.jpg';
 
-import '../styles/Modal.css';
+import '../styles/CreateArtistModal.css';
 
-// Компонент формы создания нового исполнителя
+
 export default function CreateArtistModal({ isOpen, onClose, onSuccess }) {
   // Состояния полей формы и загрузки
   const [name, setName] = useState('');
@@ -133,18 +133,18 @@ export default function CreateArtistModal({ isOpen, onClose, onSuccess }) {
         onCropComplete={handleCropComplete}
       />
 
-      <form className="auth-form" onSubmit={handleSubmit}>
-        {errorMsg && <div className="auth-error-global">{errorMsg}</div>}
-        {successMsg && <div className="auth-success-global">{successMsg}</div>}
+      <form className="create-artist-modal-auth-form" onSubmit={handleSubmit}>
+        {errorMsg && <div className="create-artist-modal-auth-error-global">{errorMsg}</div>}
+        {successMsg && <div className="create-artist-modal-auth-success-global">{successMsg}</div>}
 
-        <div className="avatar-preview-container">
-          <div className="avatar-preview-wrapper">
+        <div className="create-artist-modal-avatar-preview-container">
+          <div className="create-artist-modal-avatar-preview-wrapper">
             <img
               src={avatarPreview || defaultAvatar}
               alt="Предпросмотр аватара"
-              className="avatar-preview-image circle"
+              className="create-artist-modal-avatar-preview-image create-artist-modal-circle"
             />
-            <label className="avatar-preview-badge">
+            <label className="create-artist-modal-avatar-preview-badge">
               <input
                 ref={fileInputRef}
                 type="file"
@@ -157,7 +157,7 @@ export default function CreateArtistModal({ isOpen, onClose, onSuccess }) {
           </div>
         </div>
 
-        <div className="auth-form-group">
+        <div className="create-artist-modal-auth-form-group">
           <label>Имя исполнителя / Название группы *</label>
           <input
             type="text"
@@ -169,11 +169,11 @@ export default function CreateArtistModal({ isOpen, onClose, onSuccess }) {
           />
         </div>
 
-        <div className="auth-form-group">
-          <div className="genre-header-row">
-            <label className="genre-header-label">Жанры артиста *</label>
+        <div className="create-artist-modal-auth-form-group">
+          <div className="create-artist-modal-genre-header-row">
+            <label className="create-artist-modal-genre-header-label">Жанры артиста *</label>
             {selectedGenres.length > 0 && (
-              <span className="genre-selected-count">
+              <span className="create-artist-modal-genre-selected-count">
                 Выбрано: {selectedGenres.length}
               </span>
             )}
@@ -181,16 +181,16 @@ export default function CreateArtistModal({ isOpen, onClose, onSuccess }) {
 
           <input
             type="text"
-            className="input-element genre-search-input"
+            className="create-artist-modal-input-element create-artist-modal-genre-search-input"
             placeholder="Поиск жанра по названию..."
             value={genreSearch}
             onChange={(e) => setGenreSearch(e.target.value)}
             disabled={loading}
           />
 
-          <div className="genres-selector-list">
+          <div className="create-artist-modal-genres-selector-list">
             {filteredGenres.length === 0 ? (
-              <div className="genre-empty-hint">Жанр не найден</div>
+              <div className="create-artist-modal-genre-empty-hint">Жанр не найден</div>
             ) : (
               filteredGenres.map((g) => {
                 const isSelected = selectedGenres.includes(g.key);
@@ -198,7 +198,7 @@ export default function CreateArtistModal({ isOpen, onClose, onSuccess }) {
                   <button
                     key={g.key}
                     type="button"
-                    className={`genre-chip-btn ${isSelected ? 'active' : ''}`}
+                    className={`create-artist-modal-genre-chip-btn ${isSelected ? 'create-artist-modal-active' : ''}`}
                     onClick={() => handleToggleGenre(g.key)}
                     disabled={loading}
                   >

@@ -7,9 +7,8 @@ import eye from '../assets/eye.svg';
 import eye_crossed from '../assets/eye-crossed.svg';
 import closeIcon from '../assets/close-icon.svg';
 
-import '../styles/AuthModal.css';
-import '../styles/Register.css';
-import '../styles/Login.css';
+import '../styles/ChangePasswordModal.css';
+
 
 export function ChangePasswordContent({ onClose }) {
   // Состояния для полей пароля
@@ -91,10 +90,10 @@ export function ChangePasswordContent({ onClose }) {
     if (/(?=.*\d)/.test(pwd)) score++;
     if (/(?=.*[!@#$%^&*])/.test(pwd)) score++;
 
-    if (score <= 2) return { label: 'Слабый', class: 'weak' };
-    if (score <= 3) return { label: 'Средний', class: 'medium' };
-    if (score <= 4) return { label: 'Сильный', class: 'strong' };
-    return { label: 'Очень сильный', class: 'very-strong' };
+    if (score <= 2) return { label: 'Слабый', class: 'change-password-modal-weak' };
+    if (score <= 3) return { label: 'Средний', class: 'change-password-modal-medium' };
+    if (score <= 4) return { label: 'Сильный', class: 'change-password-modal-strong' };
+    return { label: 'Очень сильный', class: 'change-password-modal-very-strong' };
   };
 
   // Изменение поля с валидацией
@@ -148,28 +147,28 @@ export function ChangePasswordContent({ onClose }) {
   const isEmpty = !currentPassword || !newPassword || !confirmPassword;
 
   return (
-    <form className="auth-form" onSubmit={handleSubmit}>
-      <h2 className="auth-form-title">Изменить пароль</h2>
-      <p className="auth-form-subtitle">Укажите текущий и новый пароль</p>
+    <form className="change-password-modal-auth-form" onSubmit={handleSubmit}>
+      <h2 className="change-password-modal-auth-form-title">Изменить пароль</h2>
+      <p className="change-password-modal-auth-form-subtitle">Укажите текущий и новый пароль</p>
 
       {fieldError && (
-        <div className="auth-error-global" role="alert">
+        <div className="change-password-modal-auth-error-global" role="alert">
           {fieldError}
         </div>
       )}
 
       {successMessage && (
-        <div className="auth-success-global" role="alert">
+        <div className="change-password-modal-auth-success-global" role="alert">
           {successMessage}
         </div>
       )}
 
       {/* Текущий пароль */}
-      <div className="auth-form-group">
+      <div className="change-password-modal-auth-form-group">
         <label htmlFor="change-current-password">
-          Текущий пароль <span className="required-star">*</span>
+          Текущий пароль <span className="change-password-modal-required-star">*</span>
         </label>
-        <div className="password-input-wrapper">
+        <div className="change-password-modal-password-input-wrapper">
           <input
             id="change-current-password"
             type={showCurrentPassword ? 'text' : 'password'}
@@ -180,33 +179,33 @@ export function ChangePasswordContent({ onClose }) {
             }
             required
             disabled={loading}
-            className={errors.currentPassword ? 'error' : ''}
+            className={errors.currentPassword ? 'change-password-modal-error' : ''}
           />
           <button
             type="button"
-            className="password-toggle"
+            className="change-password-modal-password-toggle"
             onClick={() => setShowCurrentPassword(!showCurrentPassword)}
             tabIndex="-1"
             disabled={loading}
           >
             <img
-              className="password-toggle-icon"
+              className="change-password-modal-password-toggle-icon"
               src={showCurrentPassword ? eye_crossed : eye}
               alt="Видимость пароля"
             />
           </button>
         </div>
         {errors.currentPassword && (
-          <span className="auth-error">{errors.currentPassword}</span>
+          <span className="change-password-modal-auth-error">{errors.currentPassword}</span>
         )}
       </div>
 
       {/* Новый пароль */}
-      <div className="auth-form-group">
+      <div className="change-password-modal-auth-form-group">
         <label htmlFor="change-new-password">
-          Новый пароль <span className="required-star">*</span>
+          Новый пароль <span className="change-password-modal-required-star">*</span>
         </label>
-        <div className="password-input-wrapper">
+        <div className="change-password-modal-password-input-wrapper">
           <input
             id="change-new-password"
             type={showNewPassword ? 'text' : 'password'}
@@ -216,32 +215,32 @@ export function ChangePasswordContent({ onClose }) {
             required
             minLength={8}
             disabled={loading}
-            className={errors.newPassword ? 'error' : ''}
+            className={errors.newPassword ? 'change-password-modal-error' : ''}
           />
           <button
             type="button"
-            className="password-toggle"
+            className="change-password-modal-password-toggle"
             onClick={() => setShowNewPassword(!showNewPassword)}
             tabIndex="-1"
             disabled={loading}
           >
             <img
-              className="password-toggle-icon"
+              className="change-password-modal-password-toggle-icon"
               src={showNewPassword ? eye_crossed : eye}
               alt="Видимость пароля"
             />
           </button>
         </div>
         {errors.newPassword && (
-          <span className="auth-error">{errors.newPassword}</span>
+          <span className="change-password-modal-auth-error">{errors.newPassword}</span>
         )}
         {newPassword && !errors.newPassword && passwordStrength && (
-          <div className="password-strength">
+          <div className="change-password-modal-password-strength">
             <div
-              className={`password-strength-bar ${passwordStrength.class}`}
+              className={`change-password-modal-password-strength-bar ${passwordStrength.class}`}
             ></div>
             <span
-              className={`password-strength-text ${passwordStrength.class}`}
+              className={`change-password-modal-password-strength-text ${passwordStrength.class}`}
             >
               {passwordStrength.label}
             </span>
@@ -250,11 +249,11 @@ export function ChangePasswordContent({ onClose }) {
       </div>
 
       {/* Подтверждение пароля */}
-      <div className="auth-form-group">
+      <div className="change-password-modal-auth-form-group">
         <label htmlFor="change-confirm-password">
-          Подтверждение нового пароля <span className="required-star">*</span>
+          Подтверждение нового пароля <span className="change-password-modal-required-star">*</span>
         </label>
-        <div className="password-input-wrapper">
+        <div className="change-password-modal-password-input-wrapper">
           <input
             id="change-confirm-password"
             type={showConfirmPassword ? 'text' : 'password'}
@@ -266,24 +265,24 @@ export function ChangePasswordContent({ onClose }) {
             required
             minLength={8}
             disabled={loading}
-            className={errors.confirmPassword ? 'error' : ''}
+            className={errors.confirmPassword ? 'change-password-modal-error' : ''}
           />
           <button
             type="button"
-            className="password-toggle"
+            className="change-password-modal-password-toggle"
             onClick={() => setShowConfirmPassword(!showConfirmPassword)}
             tabIndex="-1"
             disabled={loading}
           >
             <img
-              className="password-toggle-icon"
+              className="change-password-modal-password-toggle-icon"
               src={showConfirmPassword ? eye_crossed : eye}
               alt="Видимость пароля"
             />
           </button>
         </div>
         {errors.confirmPassword && (
-          <span className="auth-error">{errors.confirmPassword}</span>
+          <span className="change-password-modal-auth-error">{errors.confirmPassword}</span>
         )}
       </div>
 
@@ -295,7 +294,7 @@ export function ChangePasswordContent({ onClose }) {
       >
         {loading ? (
           <>
-            <span className="spinner"></span>
+            <span className="change-password-modal-spinner"></span>
             Обновление...
           </>
         ) : (
@@ -331,19 +330,19 @@ export default function ChangePasswordModal({ isOpen, onClose }) {
 
   return (
     <div
-      className={`modal-background ${isClosing ? 'closing' : ''}`}
+      className={`change-password-modal-modal-background ${isClosing ? 'change-password-modal-closing' : ''}`}
       onClick={(e) => {
         if (e.target === e.currentTarget) handleClose();
       }}
     >
-      <div className={`modal-window ${isClosing ? 'closing' : ''}`}>
-        <div className="modal-window-top-buttons">
-          <button type="button" className="modal-window-top-button active">
+      <div className={`change-password-modal-modal-window ${isClosing ? 'change-password-modal-closing' : ''}`}>
+        <div className="change-password-modal-modal-window-top-buttons">
+          <button type="button" className="change-password-modal-modal-window-top-button change-password-modal-active">
             Смена пароля
           </button>
           <button
             type="button"
-            className="modal-close-button"
+            className="change-password-modal-modal-close-button"
             onClick={handleClose}
             title="Закрыть"
           >
@@ -351,7 +350,7 @@ export default function ChangePasswordModal({ isOpen, onClose }) {
           </button>
         </div>
 
-        <div className="modal-window-content">
+        <div className="change-password-modal-modal-window-content">
           <ChangePasswordContent onClose={handleClose} />
         </div>
       </div>

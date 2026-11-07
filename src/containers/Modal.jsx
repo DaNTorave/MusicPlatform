@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import closeIcon from '../assets/close-icon.svg';
 import '../styles/Modal.css';
 
-// Универсальный контейнер модального окна
+
 export default function Modal({
   isOpen,
   onClose,
@@ -78,7 +78,7 @@ export default function Modal({
 
   return (
     <div
-      className={`modal-background ${isClosing ? 'closing' : ''}`}
+      className={`modal-background ${isClosing ? 'modal-closing' : ''}`}
       onClick={handleBackgroundClick}
     >
       {/* Всплывающее уведомление поверх модального окна */}
@@ -108,7 +108,7 @@ export default function Modal({
             <button
               key={tab.id}
               type="button"
-              className={`modal-window-top-button ${activeTab === tab.id ? 'active' : ''}`}
+              className={`modal-window-top-button ${activeTab === tab.id ? 'modal-active' : ''}`}
               onClick={() => onTabChange && onTabChange(tab.id)}
             >
               {tab.label}

@@ -4,10 +4,9 @@ import InputField from './InputField';
 import Button from './Button';
 import eye from '../assets/eye.svg';
 import eye_crossed from '../assets/eye-crossed.svg';
-import '../styles/Register.css';
-import '../styles/Login.css';
+import '../styles/ResetPassword.css';
 
-// Компонент сброса пароля с двумя шагами
+
 export default function ResetPassword({
   onSuccess,
   onSwitchToLogin,
@@ -123,10 +122,10 @@ export default function ResetPassword({
     if (/(?=.*\d)/.test(pwd)) score++;
     if (/(?=.*[!@#$%^&*])/.test(pwd)) score++;
 
-    if (score <= 2) return { label: 'Слабый', class: 'weak' };
-    if (score <= 3) return { label: 'Средний', class: 'medium' };
-    if (score <= 4) return { label: 'Сильный', class: 'strong' };
-    return { label: 'Очень сильный', class: 'very-strong' };
+    if (score <= 2) return { label: 'Слабый', class: 'reset-password-weak' };
+    if (score <= 3) return { label: 'Средний', class: 'reset-password-medium' };
+    if (score <= 4) return { label: 'Сильный', class: 'reset-password-strong' };
+    return { label: 'Очень сильный', class: 'reset-password-very-strong' };
   };
 
   // Изменение поля с валидацией
@@ -197,32 +196,32 @@ export default function ResetPassword({
     !code.trim() || !newPassword.trim() || !confirmPassword.trim();
 
   return (
-    <div className="auth-form">
-      <h2 className="auth-form-title">Сброс пароля</h2>
-      <p className="auth-form-subtitle">
+    <div className="reset-password-auth-form">
+      <h2 className="reset-password-auth-form-title">Сброс пароля</h2>
+      <p className="reset-password-auth-form-subtitle">
         {step === 1
           ? 'Введите email для получения кода'
           : 'Введите код и новый пароль'}
       </p>
 
       {fieldError && (
-        <div className="auth-error-global" role="alert">
+        <div className="reset-password-auth-error-global" role="alert">
           {fieldError}
         </div>
       )}
 
       {successMessage && (
-        <div className="auth-success-global" role="alert">
+        <div className="reset-password-auth-success-global" role="alert">
           {successMessage}
         </div>
       )}
 
       {/* Первый шаг: ввод email */}
       {step === 1 ? (
-        <form onSubmit={handleStepOneSubmit} className="auth-form">
-          <div className="auth-form-group">
+        <form onSubmit={handleStepOneSubmit} className="reset-password-auth-form">
+          <div className="reset-password-auth-form-group">
             <label htmlFor="reset-email">
-              Email <span className="required-star">*</span>
+              Email <span className="reset-password-required-star">*</span>
             </label>
             <input
               id="reset-email"
@@ -232,10 +231,10 @@ export default function ResetPassword({
               onChange={(e) => handleFieldChange('email', e.target.value)}
               required
               disabled={loadingRequest}
-              className={errors.email ? 'error' : ''}
+              className={errors.email ? 'reset-password-error' : ''}
               autoFocus
             />
-            {errors.email && <span className="auth-error">{errors.email}</span>}
+            {errors.email && <span className="reset-password-auth-error">{errors.email}</span>}
           </div>
 
           <Button
@@ -246,7 +245,7 @@ export default function ResetPassword({
           >
             {loadingRequest ? (
               <>
-                <span className="spinner"></span>
+                <span className="reset-password-spinner"></span>
                 Отправка...
               </>
             ) : (
@@ -256,10 +255,10 @@ export default function ResetPassword({
         </form>
       ) : (
         /* Второй шаг: ввод кода и нового пароля */
-        <form onSubmit={handleStepTwoSubmit} className="auth-form">
-          <div className="auth-form-group">
+        <form onSubmit={handleStepTwoSubmit} className="reset-password-auth-form">
+          <div className="reset-password-auth-form-group">
             <label htmlFor="reset-code">
-              Код подтверждения <span className="required-star">*</span>
+              Код подтверждения <span className="reset-password-required-star">*</span>
             </label>
             <input
               id="reset-code"
@@ -269,17 +268,17 @@ export default function ResetPassword({
               onChange={(e) => handleFieldChange('code', e.target.value)}
               required
               disabled={loadingConfirm}
-              className={errors.code ? 'error' : ''}
+              className={errors.code ? 'reset-password-error' : ''}
               autoFocus
             />
-            {errors.code && <span className="auth-error">{errors.code}</span>}
+            {errors.code && <span className="reset-password-auth-error">{errors.code}</span>}
           </div>
 
-          <div className="auth-form-group">
+          <div className="reset-password-auth-form-group">
             <label htmlFor="reset-new-password">
-              Новый пароль <span className="required-star">*</span>
+              Новый пароль <span className="reset-password-required-star">*</span>
             </label>
-            <div className="password-input-wrapper">
+            <div className="reset-password-password-input-wrapper">
               <input
                 id="reset-new-password"
                 type={showPassword ? 'text' : 'password'}
@@ -291,32 +290,32 @@ export default function ResetPassword({
                 required
                 minLength={8}
                 disabled={loadingConfirm}
-                className={errors.newPassword ? 'error' : ''}
+                className={errors.newPassword ? 'reset-password-error' : ''}
               />
               <button
                 type="button"
-                className="password-toggle"
+                className="reset-password-password-toggle"
                 onClick={() => setShowPassword(!showPassword)}
                 tabIndex="-1"
                 disabled={loadingConfirm}
               >
                 <img
-                  className="password-toggle-icon"
+                  className="reset-password-password-toggle-icon"
                   src={showPassword ? eye_crossed : eye}
                   alt={showPassword ? 'Скрыть пароль' : 'Показать пароль'}
                 />
               </button>
             </div>
             {errors.newPassword && (
-              <span className="auth-error">{errors.newPassword}</span>
+              <span className="reset-password-auth-error">{errors.newPassword}</span>
             )}
             {newPassword && !errors.newPassword && passwordStrength && (
-              <div className="password-strength">
+              <div className="reset-password-password-strength">
                 <div
-                  className={`password-strength-bar ${passwordStrength.class}`}
+                  className={`reset-password-password-strength-bar ${passwordStrength.class}`}
                 ></div>
                 <span
-                  className={`password-strength-text ${passwordStrength.class}`}
+                  className={`reset-password-password-strength-text ${passwordStrength.class}`}
                 >
                   {passwordStrength.label}
                 </span>
@@ -324,11 +323,11 @@ export default function ResetPassword({
             )}
           </div>
 
-          <div className="auth-form-group">
+          <div className="reset-password-auth-form-group">
             <label htmlFor="reset-confirm-password">
-              Подтверждение пароля <span className="required-star">*</span>
+              Подтверждение пароля <span className="reset-password-required-star">*</span>
             </label>
-            <div className="password-input-wrapper">
+            <div className="reset-password-password-input-wrapper">
               <input
                 id="reset-confirm-password"
                 type={showConfirmPassword ? 'text' : 'password'}
@@ -340,17 +339,17 @@ export default function ResetPassword({
                 required
                 minLength={8}
                 disabled={loadingConfirm}
-                className={errors.confirmPassword ? 'error' : ''}
+                className={errors.confirmPassword ? 'reset-password-error' : ''}
               />
               <button
                 type="button"
-                className="password-toggle"
+                className="reset-password-password-toggle"
                 onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                 tabIndex="-1"
                 disabled={loadingConfirm}
               >
                 <img
-                  className="password-toggle-icon"
+                  className="reset-password-password-toggle-icon"
                   src={showConfirmPassword ? eye_crossed : eye}
                   alt={
                     showConfirmPassword ? 'Скрыть пароль' : 'Показать пароль'
@@ -359,7 +358,7 @@ export default function ResetPassword({
               </button>
             </div>
             {errors.confirmPassword && (
-              <span className="auth-error">{errors.confirmPassword}</span>
+              <span className="reset-password-auth-error">{errors.confirmPassword}</span>
             )}
           </div>
 
@@ -371,7 +370,7 @@ export default function ResetPassword({
           >
             {loadingConfirm ? (
               <>
-                <span className="spinner"></span>
+                <span className="reset-password-spinner"></span>
                 Сохранение...
               </>
             ) : (
@@ -381,7 +380,7 @@ export default function ResetPassword({
         </form>
       )}
 
-      <div className="auth-form-footer">
+      <div className="reset-password-auth-form-footer">
         <a onClick={onSwitchToLogin}>Вернуться ко входу</a>
       </div>
     </div>

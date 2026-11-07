@@ -1,4 +1,5 @@
 import React from 'react';
+import '../styles/AgeRestrictionToggle.css';
 
 export default function AgeRestrictionToggle({
   checked,
@@ -10,7 +11,7 @@ export default function AgeRestrictionToggle({
     return (
       <button
         type="button"
-        className={`track-slot-age-btn ${checked ? 'is-active' : ''}`}
+        className={`track-slot-age-btn ${checked ? 'age-restriction-toggle-is-active' : ''}`}
         onClick={() => onChange(!checked)}
         disabled={disabled}
         title={checked ? 'Снять ограничение 18+' : 'Пометить как 18+'}
@@ -21,7 +22,7 @@ export default function AgeRestrictionToggle({
   }
 
   return (
-    <div className={`age-restriction-box ${checked ? 'is-active' : ''}`}>
+    <div className={`age-restriction-box ${checked ? 'age-restriction-toggle-is-active' : ''}`}>
       <label className="age-restriction-label">
         <input
           type="checkbox"

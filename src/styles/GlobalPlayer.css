@@ -55,6 +55,8 @@
   overflow: hidden;
   text-overflow: ellipsis;
   width: 100%;
+  min-width: 30px;
+  flex: 0 1 auto;
 }
 
 .player-artists-container {
@@ -138,7 +140,7 @@
   background: #1a7fe0;
 }
 
-.player-main-icon {
+.global-player-player-main-icon {
   width: 26px;
   height: 26px;
   display: block;
@@ -223,9 +225,13 @@
 @media (max-width: 768px) {
   .global-player-bar {
     padding: 0 16px;
+
     gap: 10px;
+
     height: 75px;
+
     grid-template-columns: 1fr auto;
+
     margin: 0.75rem;
   }
 
@@ -235,35 +241,27 @@
 
   .player-cover {
     width: 44px;
+
     height: 44px;
   }
 
   .player-btn-main {
     width: 40px;
+
     height: 40px;
   }
 
-  .player-main-icon {
+  .global-player-player-main-icon {
     width: 20px;
+
     height: 20px;
   }
 
   .player-nav-icon {
     width: 22px;
+
     height: 22px;
   }
-}
-
-.player-icon-svg {
-  width: 18px;
-  height: 18px;
-  display: block;
-}
-
-.player-main-icon-svg {
-  width: 22px;
-  height: 22px;
-  display: block;
 }
 
 .player-artist-link {
@@ -286,16 +284,6 @@
   min-width: 0;
 }
 
-.player-title {
-  font-weight: 700;
-  font-size: 0.95rem;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  min-width: 30px;
-  flex: 0 1 auto;
-}
-
 .player-cover-badge {
   flex-shrink: 0;
   font-size: 0.68rem;
@@ -313,12 +301,12 @@
   line-height: 1.2;
 }
 
-.player-cover-badge.clickable {
+.player-cover-badge.global-player-clickable {
   cursor: pointer;
   transition: all 0.2s ease;
 }
 
-.player-cover-badge.clickable:hover {
+.player-cover-badge.global-player-clickable:hover {
   background: #0284c7;
   color: #ffffff;
   border-color: #0284c7;
@@ -336,23 +324,11 @@
   text-decoration: underline;
 }
 
-.player-download-btn {
-  background: transparent;
-  border: none;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 4px;
-  margin-right: 8px;
-  border-radius: 50%;
-  opacity: 0.6;
-  transition: opacity 0.15s ease, transform 0.15s ease;
-}
-
 .player-side-action-btn {
   opacity: 0.6;
-  transition: opacity 0.15s ease, transform 0.15s ease;
+  transition:
+    opacity 0.15s ease,
+    transform 0.15s ease;
   filter: brightness(0) invert(1);
 }
 
@@ -366,7 +342,7 @@
   height: 18px;
 }
 
-.player-side-action-btn.is-fav {
+.player-side-action-btn.global-player-is-fav {
   opacity: 1;
 }
 
@@ -376,6 +352,6 @@
   filter: brightness(0) invert(1);
 }
 
-.player-side-action-btn.is-fav .player-fav-img {
+.player-side-action-btn.global-player-is-fav .player-fav-img {
   filter: none;
 }

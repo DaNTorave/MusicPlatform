@@ -13,7 +13,6 @@ import defaultAvatar from '../assets/Шотландская веслоухая.j
 import userIcon from '../assets/user-svgrepo-com.svg';
 
 import '../styles/ProfilePage.css';
-import '../styles/Playlists.css';
 
 export default function ProfilePage() {
   const { id } = useParams();
@@ -142,11 +141,11 @@ export default function ProfilePage() {
   };
 
   if (loading) {
-    return <div className="artist-page-state">Загрузка профиля...</div>;
+    return <div className="profile-page-artist-page-state">Загрузка профиля...</div>;
   }
 
   if (!profile) {
-    return <div className="artist-page-state">Пользователь не найден</div>;
+    return <div className="profile-page-artist-page-state">Пользователь не найден</div>;
   }
 
   const avatarSrc =
@@ -154,7 +153,7 @@ export default function ProfilePage() {
       ? profile.avatar
       : userIcon;
 
-  const roleClass = (profile.role || 'member').toLowerCase();
+  const roleClass = `${(profile.role || 'member').toLowerCase()}`;
 
   return (
     <>
@@ -198,32 +197,18 @@ export default function ProfilePage() {
       <div className="profile-page">
         <div className="profile-container">
           <div className="profile-header">
-            <div className="profile-avatar" style={{ position: 'relative' }}>
+            <div className="profile-avatar">
               <img
                 src={avatarSrc}
                 alt="Avatar"
               />
               {isOwnProfile && (
-                <label
-                  style={{
-                    position: 'absolute',
-                    bottom: 0,
-                    right: 0,
-                    background: '#14161a',
-                    color: '#ffffff',
-                    fontSize: '0.75rem',
-                    padding: '4px 8px',
-                    borderRadius: '12px',
-                    cursor: 'pointer',
-                    fontWeight: 600,
-                  }}
-                  title="Сменить аватар"
-                >
+                <label className="profile-avatar-edit-badge" title="Сменить аватар">
                   <input
                     ref={fileInputRef}
                     type="file"
                     accept="image/*"
-                    style={{ display: 'none' }}
+                    className="profile-avatar-file-input"
                     onChange={handleAvatarFileSelect}
                     disabled={avatarLoading}
                   />
@@ -237,7 +222,7 @@ export default function ProfilePage() {
               <div className="profile-login">@{profile.login}</div>
 
               <div className="profile-badge">
-                <span className={`role-badge ${roleClass}`}>
+                <span className={`profile-page-role-badge ${roleClass}`}>
                   {profile.role || 'member'}
                 </span>
                 {profile.is_premium && (
@@ -291,7 +276,7 @@ export default function ProfilePage() {
           <div className="profile-favorites-section">
             <div className="profile-favorites-header">
               <div>
-                <h2 style={{ margin: 0, fontSize: '1.4rem', fontWeight: 800 }}>
+                <h2 className="profile-favorites-title">
                   Публичные плейлисты
                 </h2>
                 <span className="profile-favorites-subtitle">
@@ -310,7 +295,7 @@ export default function ProfilePage() {
             </div>
 
             {playlists.length === 0 ? (
-              <p className="empty-text">Нет доступных плейлистов</p>
+              <p className="profile-page-empty-text">Нет доступных плейлистов</p>
             ) : (
               <div className="playlists-grid">
                 {playlists.map((pl) => (

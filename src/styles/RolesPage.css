@@ -32,11 +32,6 @@
   margin-bottom: 20px;
 }
 
-.roles-search-form .input-field-container {
-  flex: 1;
-  margin-bottom: 0;
-}
-
 .roles-table-wrapper {
   background: #ffffff;
   border-radius: 14px;
@@ -110,7 +105,7 @@
   text-decoration: underline;
 }
 
-.role-badge {
+.roles-page-role-badge {
   display: inline-block;
   padding: 4px 10px;
   border-radius: 12px;
@@ -169,4 +164,77 @@
 .roles-select-input:disabled {
   opacity: 0.6;
   cursor: not-allowed;
+}
+
+.roles-page-content-page {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  background: #ffffff;
+  border-radius: 20px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.04);
+  padding: 2.5rem;
+  border: 1px solid #f0eded;
+}
+
+.roles-page-auth-error-global {
+  background-color: #fee2e2;
+  border: 1px solid #fecaca;
+  color: #991b1b;
+  padding: 0.75rem 1rem;
+  border-radius: 0.5rem;
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+}
+
+.roles-page-auth-success-global {
+  background-color: #d1fae5;
+  border: 1px solid #a7f3d0;
+  color: #065f46;
+  padding: 0.75rem 1rem;
+  border-radius: 0.5rem;
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  animation: roles-page-slideInError 0.3s ease;
+}
+
+.roles-page-status-message {
+  color: #64748b;
+  font-size: 0.95rem;
+}
+
+.roles-page-empty-catalog-text {
+  color: #888;
+  font-size: 0.95rem;
+  font-style: italic;
+}
+
+.roles-locked-text {
+  color: #94a3b8;
+  font-size: 0.85rem;
+  font-style: italic;
+}
+
+@keyframes roles-page-slideInError {
+  from {
+    opacity: 0;
+
+    transform: translateY(-8px);
+
+    max-height: 0;
+  }
+
+  to {
+    opacity: 1;
+
+    transform: translateY(0);
+
+    max-height: 50px;
+  }
 }

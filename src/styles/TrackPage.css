@@ -19,7 +19,7 @@
   color: #666;
 }
 
-.track-page-state.error {
+.track-page-state.track-page-error {
   color: #e74c3c;
 }
 
@@ -44,33 +44,6 @@
   height: 100%;
   object-fit: cover;
   display: block;
-}
-
-.track-page-cover-play {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0, 0, 0, 0.4);
-  border: none;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  opacity: 0;
-  cursor: pointer;
-  transition: opacity 0.2s ease;
-}
-
-.track-page-cover-wrapper:hover .track-page-cover-play,
-.track-page-cover-play.active {
-  opacity: 1;
-}
-
-.track-page-cover-play img {
-  width: 48px;
-  height: 48px;
-  filter: brightness(0) invert(1);
 }
 
 .track-page-meta {
@@ -127,8 +100,9 @@
   color: #14161a;
 }
 
-.artist-meta-string {
+.track-page-artist-meta-string {
   padding-left: 0;
+  padding: 0 7px;
 }
 
 .track-page-artist-link,
@@ -210,12 +184,15 @@
 
   .track-page-header {
     flex-direction: column;
+
     text-align: center;
+
     gap: 1.5rem;
   }
 
   .track-page-cover-wrapper {
     width: 160px;
+
     height: 160px;
   }
 
@@ -227,4 +204,14 @@
   .track-page-title {
     font-size: 1.8rem;
   }
+}
+
+.track-page-artist-meta {
+  color: #666;
+  display: flex;
+  font-size: 0.95rem;
+}
+
+.track-page-album-year {
+  color: #64748b;
 }

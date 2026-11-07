@@ -111,9 +111,9 @@ export default function GenresPage() {
     <div className="genres-manager-page">
       <div className="genres-manager-header">
         <div>
-          <span className="artist-tag">Администрирование</span>
-          <h1 className="artist-title">Кластер жанров</h1>
-          <p className="artist-meta-string" style={{ paddingLeft: 0 }}>
+          <span className="genres-page-artist-tag">Администрирование</span>
+          <h1 className="genres-page-artist-title">Кластер жанров</h1>
+          <p className="genres-page-artist-meta-string genres-header-subtitle">
             Управление допустимыми жанрами для всей платформы
           </p>
         </div>
@@ -128,8 +128,8 @@ export default function GenresPage() {
         </Button>
       </div>
 
-      {errorMsg && <div className="auth-error-global">{errorMsg}</div>}
-      {successMsg && <div className="auth-success-global">{successMsg}</div>}
+      {errorMsg && <div className="genres-page-auth-error-global">{errorMsg}</div>}
+      {successMsg && <div className="genres-page-auth-success-global">{successMsg}</div>}
 
       {/* Форма создания жанра */}
       <form className="genres-create-card" onSubmit={handleCreate}>
@@ -162,23 +162,23 @@ export default function GenresPage() {
         <table className="genres-table">
           <thead>
             <tr>
-              <th style={{ width: '60px' }}>№</th>
+              <th className="genres-col-num">№</th>
               <th>Ключ системы</th>
               <th>Название на русском</th>
-              <th style={{ width: '180px' }}>Действия</th>
+              <th className="genres-col-actions">Действия</th>
             </tr>
           </thead>
           <tbody>
             {loading && sortedGenres.length === 0 ? (
               <tr>
-                <td colSpan="4" style={{ textAlign: 'center', padding: '20px' }}>
+                <td colSpan="4" className="genres-loading-cell">
                   Загрузка жанров...
                 </td>
               </tr>
             ) : (
               sortedGenres.map((g, index) => (
                 <tr key={g.id}>
-                  <td style={{ fontWeight: 600, color: '#64748b' }}>
+                  <td className="genres-num-cell">
                     {index + 1}
                   </td>
                   <td>
@@ -188,7 +188,7 @@ export default function GenresPage() {
                     {editingId === g.id ? (
                       <input
                         type="text"
-                        className="input-element"
+                        className="genres-page-input-element"
                         value={editTitleRu}
                         onChange={(e) => setEditTitleRu(e.target.value)}
                         autoFocus
