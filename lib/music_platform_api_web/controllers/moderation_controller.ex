@@ -157,6 +157,7 @@ defmodule MusicPlatformApiWeb.ModerationController do
       else
         item_id = if is_binary(params["id"]), do: String.to_integer(params["id"]), else: params["id"]
         item = Repo.get!(schema, item_id)
+        was_pending = item.status == "pending"
 
         update_attrs = %{status: "approved", moderation_comment: "Одобрено модератором"}
 
@@ -394,7 +395,11 @@ defmodule MusicPlatformApiWeb.ModerationController do
           case Repo.update(changeset) do
             {:ok, updated_item} ->
               refreshed_item = Repo.get!(schema, updated_item.id)
-              Music.notify_creator(schema, refreshed_item, "approved", "Одобрено модератором")
+
+              if was_pending do
+                Music.notify_creator(schema, refreshed_item, "approved", "Одобрено модератором")
+              end
+
               refreshed_item
 
             {:error, changeset} ->

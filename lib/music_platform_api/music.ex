@@ -124,6 +124,7 @@ defmodule MusicPlatformApi.Music do
   def moderate_item(schema, id, status, comment) when schema in [Artist, Album, Track] do
     item_id = if is_binary(id), do: String.to_integer(id), else: id
     item = Repo.get!(schema, item_id)
+    status_changed? = item.status != status
     changeset = schema.moderation_changeset(item, %{status: status, moderation_comment: comment})
 
     Repo.transaction(fn ->
@@ -134,7 +135,10 @@ defmodule MusicPlatformApi.Music do
             |> Repo.update_all(set: [status: status, moderation_comment: comment])
           end
 
-          notify_creator(schema, updated_item, status, comment)
+          if status_changed? do
+            notify_creator(schema, updated_item, status, comment)
+          end
+
           updated_item
 
         {:error, changeset} ->
