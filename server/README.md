@@ -1,0 +1,21 @@
+# MusicPlatformApi
+
+## Создание БД
+```
+mix ecto.create
+```
+
+## Применение миграций
+```
+mix ecto.migrate
+```
+
+## Запуск файла seeds
+```
+mix run priv/repo/seeds.exs
+```
+
+## Запуск
+```
+mix phx.server
+```

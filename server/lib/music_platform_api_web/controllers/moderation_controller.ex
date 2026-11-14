@@ -1,0 +1,437 @@
+defmodule MusicPlatformApiWeb.ModerationController do
+  use MusicPlatformApiWeb, :controller
+  import Ecto.Query
+  alias MusicPlatformApi.{Auth, Repo, Music}
+  alias MusicPlatformApi.Music.{Artist, Album, Track}
+
+  # Список на модерацию
+  def pending_list(conn, _params) do
+    with ["Bearer " <> token] <- get_req_header(conn, "authorization"),
+         user when not is_nil(user) and user.role in ["owner", "admin", "moderator"] <- Auth.get_user_from_token(token) do
+      format_creator = fn creator ->
+        if creator, do: %{id: creator.id, login: creator.login, nickname: creator.nickname}, else: nil
+      end
+
+      format_artist = fn artist ->
+        if artist, do: %{id: artist.id, name: artist.name}, else: nil
+      end
+
+      format_original_track = fn orig ->
+        if orig do
+          %{
+            id: orig.id,
+            title: orig.title,
+            cover: orig.cover,
+            artist: (if orig.artist, do: %{id: orig.artist.id, name: orig.artist.name}, else: nil)
+          }
+        else
+          nil
+        end
+      end
+
+      artists =
+        Repo.all(from a in Artist, where: a.status == "pending", preload: [:creator])
+        |> Enum.map(fn a ->
+          a
+          |> Map.from_struct()
+          |> Map.drop([:__meta__, :creator, :albums, :tracks, :collab_tracks])
+          |> Map.put(:type, "artist")
+          |> Map.put(:creator_info, format_creator.(a.creator))
+        end)
+
+      albums =
+        Repo.all(
+          from a in Album,
+            where: a.status == "pending",
+            preload: [
+              :creator,
+              :artist,
+              tracks: ^from(t in Track, order_by: [asc: t.position, asc: t.id], preload: [:collaborators, original_track: [:artist]])
+            ]
+        )
+        |> Enum.map(fn a ->
+          formatted_tracks =
+            Enum.map(a.tracks || [], fn t ->
+              %{
+                id: t.id,
+                title: t.title,
+                audio_uuid: t.audio_uuid,
+                duration_seconds: t.duration_seconds,
+                is_single: t.is_single,
+                status: t.status,
+                is_cover: t.is_cover,
+                position: t.position,
+                release_year: t.release_year,
+                original_track_id: t.original_track_id,
+                original_track: format_original_track.(t.original_track),
+                collaborators: Enum.map(t.collaborators || [], &%{id: &1.id, name: &1.name}),
+                age_restriction: t.age_restriction
+              }
+            end)
+
+          a
+          |> Map.from_struct()
+          |> Map.drop([:__meta__, :creator, :artist, :tracks])
+          |> Map.put(:type, "album")
+          |> Map.put(:tracks, formatted_tracks)
+          |> Map.put(:creator_info, format_creator.(a.creator))
+          |> Map.put(:artist_info, format_artist.(a.artist))
+        end)
+
+      tracks =
+        Repo.all(
+          from t in Track,
+            where: t.status == "pending" and t.is_single == true,
+            preload: [:creator, :artist, :collaborators, original_track: [:artist]]
+        )
+        |> Enum.map(fn t ->
+          t
+          |> Map.from_struct()
+          |> Map.drop([:__meta__, :creator, :artist, :album, :collaborators, :original_track])
+          |> Map.put(:type, "track")
+          |> Map.put(:creator_info, format_creator.(t.creator))
+          |> Map.put(:artist_info, format_artist.(t.artist))
+          |> Map.put(:original_track, format_original_track.(t.original_track))
+          |> Map.put(:collaborators, Enum.map(t.collaborators || [], &%{id: &1.id, name: &1.name}))
+          |> Map.put(:age_restriction, t.age_restriction)
+        end)
+
+      json(conn, %{items: artists ++ albums ++ tracks})
+    else
+      _ -> conn |> put_status(:forbidden) |> json(%{error: "Доступ запрещен"})
+    end
+  end
+
+  def make_decision(conn, %{"schema" => schema_str, "id" => id, "status" => status} = params) do
+    with ["Bearer " <> token] <- get_req_header(conn, "authorization"),
+         user when not is_nil(user) and user.role in ["owner", "admin", "moderator"] <- Auth.get_user_from_token(token) do
+      schema =
+        case String.downcase(to_string(schema_str)) do
+          "artist" -> Artist
+          "album" -> Album
+          "track" -> Track
+          "single" -> Track
+          _ -> nil
+        end
+
+      if schema do
+        comment = Map.get(params, "comment", "")
+
+        case Music.moderate_item(schema, id, status, comment) do
+          {:ok, item} ->
+            json(conn, %{success: true, item: item})
+
+          {:error, %Ecto.Changeset{} = changeset} ->
+            errors = Ecto.Changeset.traverse_errors(changeset, fn {msg, _opts} -> msg end)
+            conn |> put_status(:bad_request) |> json(%{error: "Ошибка валидации", details: errors})
+
+          {:error, reason} ->
+            conn |> put_status(:bad_request) |> json(%{error: inspect(reason)})
+        end
+      else
+        conn |> put_status(:bad_request) |> json(%{error: "Неизвестный тип сущности: #{schema_str}"})
+      end
+    else
+      _ -> conn |> put_status(:forbidden) |> json(%{error: "Доступ запрещен"})
+    end
+  end
+
+  def make_decision(conn, _params) do
+    conn |> put_status(:bad_request) |> json(%{error: "Отсутствуют обязательные параметры (schema, id, status)"})
+  end
+
+  def approve_with_edit(conn, %{"schema" => schema_str} = params) do
+    with ["Bearer " <> token] <- get_req_header(conn, "authorization"),
+         user when not is_nil(user) and user.role in ["owner", "admin", "moderator"] <- Auth.get_user_from_token(token) do
+      schema =
+        case String.downcase(to_string(schema_str)) do
+          "artist" -> Artist
+          "album" -> Album
+          "track" -> Track
+          "single" -> Track
+          _ -> nil
+        end
+
+      if is_nil(schema) do
+        return_error(conn, :bad_request, "Неизвестный тип сущности: #{schema_str}")
+      else
+        item_id = if is_binary(params["id"]), do: String.to_integer(params["id"]), else: params["id"]
+        item = Repo.get!(schema, item_id)
+        was_pending = item.status == "pending"
+
+        update_attrs = %{status: "approved", moderation_comment: "Одобрено модератором"}
+
+        update_attrs =
+          if Map.has_key?(params, "title") and params["title"] != "" do
+            if schema == Artist, do: Map.put(update_attrs, :name, params["title"]), else: Map.put(update_attrs, :title, params["title"])
+          else
+            update_attrs
+          end
+
+        update_attrs =
+          if schema == Artist do
+            raw_genres = Map.get(params, "genres") || Map.get(params, "genres[]")
+            genre_str = Map.get(params, "genre")
+
+            genres_list =
+              cond do
+                is_list(raw_genres) -> raw_genres
+                is_binary(raw_genres) -> String.split(raw_genres, ",") |> Enum.map(&String.trim/1)
+                is_binary(genre_str) -> String.split(genre_str, ",") |> Enum.map(&String.trim/1)
+                true -> nil
+              end
+
+            if genres_list do
+              cleaned = Enum.reject(genres_list, &(&1 == ""))
+              update_attrs
+              |> Map.put(:genres, cleaned)
+              |> Map.put(:genre, Enum.join(cleaned, ", "))
+            else
+              update_attrs
+            end
+          else
+            update_attrs
+          end
+
+        update_attrs =
+          if Map.has_key?(params, "release_year") do
+            yr = Music.parse_int(params["release_year"])
+            Map.put(update_attrs, :release_year, if(yr > 0, do: yr, else: nil))
+          else
+            update_attrs
+          end
+
+        update_attrs =
+          case Map.get(params, "cover") do
+            %Plug.Upload{} = upload ->
+              folder = if schema == Artist, do: "avatars", else: "covers"
+              {:ok, url, _path} = Music.save_upload(upload, folder)
+
+              old_cover = if schema == Artist, do: item.avatar, else: item.cover
+              Music.delete_file(old_cover)
+
+              if schema == Artist, do: Map.put(update_attrs, :avatar, url), else: Map.put(update_attrs, :cover, url)
+
+            _ ->
+              update_attrs
+          end
+
+        update_attrs =
+          case {schema, Map.get(params, "audio")} do
+            {Track, %Plug.Upload{} = upload} ->
+              {:ok, _url, path} = Music.save_upload(upload, "tracks")
+              uuid = Path.basename(path, Path.extname(path))
+
+              Music.delete_file(item.file_path)
+
+              update_attrs
+              |> Map.put(:audio_uuid, uuid)
+              |> Map.put(:file_path, path)
+
+            _ ->
+              update_attrs
+          end
+
+        update_attrs =
+          if schema == Track do
+            is_cover = Music.parse_boolean(Map.get(params, "is_cover"))
+            orig_id = if is_cover, do: Music.parse_nullable_id(Map.get(params, "original_track_id")), else: nil
+            pos = Music.parse_int(Map.get(params, "position"))
+            age_restriction = Music.parse_boolean(Map.get(params, "age_restriction"))
+
+            update_attrs
+            |> Map.put(:is_cover, is_cover)
+            |> Map.put(:original_track_id, orig_id)
+            |> Map.put(:position, if(pos > 0, do: pos, else: 1))
+            |> Map.put(:age_restriction, age_restriction)
+          else
+            update_attrs
+          end
+
+        Repo.transaction(fn ->
+          if schema == Album do
+            tracks_params = Map.get(params, "tracks", %{})
+
+            submitted_track_ids =
+              tracks_params
+              |> Enum.map(fn {_k, v} -> v["id"] end)
+              |> Enum.reject(&is_nil/1)
+              |> Enum.map(fn id -> if is_binary(id), do: String.to_integer(id), else: id end)
+
+            tracks_to_delete =
+              from(t in Track, where: t.album_id == ^item.id and t.id not in ^submitted_track_ids)
+              |> Repo.all()
+
+            Enum.each(tracks_to_delete, fn trk ->
+              Music.delete_file(trk.file_path)
+              Music.delete_file(trk.cover)
+              Repo.delete!(trk)
+            end)
+
+            Enum.each(tracks_params, fn {idx, t_param} ->
+              track_id = t_param["id"]
+              t_is_cover = Music.parse_boolean(Map.get(t_param, "is_cover"))
+              t_orig_id = if t_is_cover, do: Music.parse_nullable_id(Map.get(t_param, "original_track_id")), else: nil
+              t_age = Music.parse_boolean(Map.get(t_param, "age_restriction"))
+
+              fallback_pos =
+                case Integer.parse(to_string(idx)) do
+                  {num, _} -> num + 1
+                  _ -> 1
+                end
+
+              pos_in_param = Music.parse_int(t_param["position"])
+              t_pos = if pos_in_param > 0, do: pos_in_param, else: fallback_pos
+
+              t_year_val = Music.parse_int(t_param["release_year"])
+              t_year = if t_year_val > 0, do: t_year_val, else: Map.get(update_attrs, :release_year, item.release_year)
+
+              if track_id && track_id != "" do
+                track = Repo.get(Track, track_id)
+
+                if track do
+                  t_attrs = %{
+                    status: "approved",
+                    moderation_comment: "Одобрено модератором",
+                    is_cover: t_is_cover,
+                    original_track_id: t_orig_id,
+                    position: t_pos,
+                    release_year: t_year,
+                    age_restriction: t_age
+                  }
+
+                  t_attrs = if t_param["title"], do: Map.put(t_attrs, :title, t_param["title"]), else: t_attrs
+
+                  t_attrs =
+                    case t_param["audio"] do
+                      %Plug.Upload{} = upload ->
+                        {:ok, _url, path} = Music.save_upload(upload, "tracks")
+                        uuid = Path.basename(path, Path.extname(path))
+
+                        Music.delete_file(track.file_path)
+
+                        t_attrs
+                        |> Map.put(:audio_uuid, uuid)
+                        |> Map.put(:file_path, path)
+
+                      _ ->
+                        t_attrs
+                    end
+
+                  track
+                  |> Track.moderation_changeset(t_attrs)
+                  |> Ecto.Changeset.change(Map.drop(t_attrs, [:status, :moderation_comment]))
+                  |> Repo.update!()
+                end
+              else
+                if t_param["audio"] do
+                  %Plug.Upload{} = upload = t_param["audio"]
+                  {:ok, _url, path} = Music.save_upload(upload, "tracks")
+                  uuid = Path.basename(path, Path.extname(path))
+
+                  %Track{}
+                  |> Track.changeset(%{
+                    "title" => t_param["title"] || "Без названия",
+                    "audio_uuid" => uuid,
+                    "file_path" => path,
+                    "album_id" => item.id,
+                    "artist_id" => item.artist_id,
+                    "creator_id" => item.creator_id,
+                    "is_single" => false,
+                    "is_cover" => t_is_cover,
+                    "original_track_id" => t_orig_id,
+                    "position" => t_pos,
+                    "release_year" => t_year,
+                    "age_restriction" => t_age
+                  })
+                  |> Track.moderation_changeset(%{status: "approved", moderation_comment: "Одобрено модератором"})
+                  |> Repo.insert!()
+                end
+              end
+            end)
+
+            from(t in Track, where: t.album_id == ^item.id)
+            |> Repo.update_all(set: [status: "approved", moderation_comment: "Одобрено модератором"])
+          end
+
+          raw_collabs = Map.get(params, "collaborator_ids") || Map.get(params, "collaborator_ids[]")
+
+          if raw_collabs do
+            collab_ids =
+              case raw_collabs do
+                ids when is_list(ids) -> ids
+                id when is_binary(id) or is_integer(id) -> [id]
+                _ -> []
+              end
+              |> Enum.reject(&(&1 == "" or is_nil(&1)))
+
+            artists = Repo.all(from a in Artist, where: a.id in ^collab_ids)
+
+            if schema == Track do
+              item
+              |> Repo.preload(:collaborators)
+              |> Ecto.Changeset.change()
+              |> Ecto.Changeset.put_assoc(:collaborators, artists)
+              |> Repo.update!()
+            end
+
+            if schema == Album do
+              album_tracks = Repo.all(from t in Track, where: t.album_id == ^item.id, preload: [:collaborators])
+
+              Enum.each(album_tracks, fn trk ->
+                trk
+                |> Ecto.Changeset.change()
+                |> Ecto.Changeset.put_assoc(:collaborators, artists)
+                |> Repo.update!()
+              end)
+            end
+          end
+
+          changeset =
+            item
+            |> schema.moderation_changeset(%{status: "approved", moderation_comment: "Одобрено модератором"})
+            |> Ecto.Changeset.change(Map.drop(update_attrs, [:status, :moderation_comment]))
+
+          case Repo.update(changeset) do
+            {:ok, updated_item} ->
+              refreshed_item = Repo.get!(schema, updated_item.id)
+
+              if was_pending do
+                Music.notify_creator(schema, refreshed_item, "approved", "Одобрено модератором")
+              end
+
+              refreshed_item
+
+            {:error, changeset} ->
+              Repo.rollback(changeset)
+          end
+        end)
+        |> case do
+          {:ok, final_item} ->
+            json(conn, %{success: true, item: final_item})
+
+          {:error, %Ecto.Changeset{} = changeset} ->
+            conn
+            |> put_status(:bad_request)
+            |> json(%{
+              error: "Ошибка валидации",
+              details: Ecto.Changeset.traverse_errors(changeset, fn {msg, _opts} -> msg end)
+            })
+
+          {:error, reason} ->
+            conn
+            |> put_status(:bad_request)
+            |> json(%{error: inspect(reason)})
+        end
+      end
+    else
+      _ -> conn |> put_status(:forbidden) |> json(%{error: "Доступ запрещен"})
+    end
+  end
+
+  defp return_error(conn, status, error_message) do
+    conn
+    |> put_status(status)
+    |> json(%{success: false, error: error_message})
+  end
+end
