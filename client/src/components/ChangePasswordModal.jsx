@@ -1,0 +1,359 @@
+import React, { useState, useEffect } from 'react';
+import { useMutation } from '../hooks/useApi';
+
+import Button from './Button';
+
+import eye from '../assets/eye.svg';
+import eye_crossed from '../assets/eye-crossed.svg';
+import closeIcon from '../assets/close-icon.svg';
+
+import '../styles/ChangePasswordModal.css';
+
+
+export function ChangePasswordContent({ onClose }) {
+  // Состояния для полей пароля
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+
+  // Состояния видимости паролей
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+  // Состояния ошибок и успеха
+  const [fieldError, setFieldError] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
+
+  // Ошибки валидации по полям
+  const [errors, setErrors] = useState({
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: '',
+  });
+
+  // Мутация смены пароля
+  const { mutate, loading } = useMutation('/api/change-password', {
+    method: 'PUT',
+    requireAuth: true,
+    onSuccess: (data) => {
+      setSuccessMessage(data.message || 'Пароль успешно изменен!');
+      setTimeout(() => {
+        if (onClose) onClose();
+      }, 1500);
+    },
+    onError: (err) => {
+      setFieldError(
+        err.data?.error || err.message || 'Не удалось изменить пароль',
+      );
+    },
+  });
+
+  // Валидация отдельного поля
+  const validateField = (field, value) => {
+    let error = '';
+    switch (field) {
+      case 'currentPassword':
+        if (!value.trim()) error = 'Введите текущий пароль';
+        break;
+      case 'newPassword':
+        if (!value.trim()) {
+          error = 'Пароль обязателен';
+        } else if (value.length < 8) {
+          error = 'Пароль должен содержать не менее 8 символов';
+        } else if (!/(?=.*[a-z])/.test(value) || !/(?=.*[A-Z])/.test(value)) {
+          error = 'Пароль должен содержать прописные и строчные буквы';
+        } else if (!/(?=.*\d)/.test(value)) {
+          error = 'Пароль должен содержать как минимум одну цифру';
+        }
+        break;
+      case 'confirmPassword':
+        if (!value.trim()) {
+          error = 'Подтверждение пароля обязательно';
+        } else if (value !== newPassword) {
+          error = 'Пароли не совпадают';
+        }
+        break;
+      default:
+        break;
+    }
+    return error;
+  };
+
+  // Оценка сложности пароля
+  const getPasswordStrength = (pwd) => {
+    if (!pwd) return null;
+    let score = 0;
+    if (pwd.length >= 8) score++;
+    if (pwd.length >= 12) score++;
+    if (/(?=.*[a-z])/.test(pwd) && /(?=.*[A-Z])/.test(pwd)) score++;
+    if (/(?=.*\d)/.test(pwd)) score++;
+    if (/(?=.*[!@#$%^&*])/.test(pwd)) score++;
+
+    if (score <= 2) return { label: 'Слабый', class: 'change-password-modal-weak' };
+    if (score <= 3) return { label: 'Средний', class: 'change-password-modal-medium' };
+    if (score <= 4) return { label: 'Сильный', class: 'change-password-modal-strong' };
+    return { label: 'Очень сильный', class: 'change-password-modal-very-strong' };
+  };
+
+  // Изменение поля с валидацией
+  const handleFieldChange = (field, value) => {
+    const setters = {
+      currentPassword: setCurrentPassword,
+      newPassword: setNewPassword,
+      confirmPassword: setConfirmPassword,
+    };
+    setters[field](value);
+    setFieldError('');
+
+    const error = validateField(field, value);
+    setErrors((prev) => ({ ...prev, [field]: error }));
+
+    if (field === 'newPassword' && confirmPassword) {
+      const confError = validateField('confirmPassword', confirmPassword);
+      setErrors((prev) => ({ ...prev, confirmPassword: confError }));
+    }
+  };
+
+  // Отправка формы
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    setFieldError('');
+
+    const curErr = validateField('currentPassword', currentPassword);
+    const newErr = validateField('newPassword', newPassword);
+    const confErr = validateField('confirmPassword', confirmPassword);
+
+    if (curErr || newErr || confErr) {
+      setErrors({
+        currentPassword: curErr,
+        newPassword: newErr,
+        confirmPassword: confErr,
+      });
+      return;
+    }
+
+    mutate({
+      current_password: currentPassword,
+      new_password: newPassword,
+      new_password_confirmation: confirmPassword,
+    });
+  };
+
+  const passwordStrength = getPasswordStrength(newPassword);
+  const hasErrors = Boolean(
+    errors.currentPassword || errors.newPassword || errors.confirmPassword,
+  );
+  const isEmpty = !currentPassword || !newPassword || !confirmPassword;
+
+  return (
+    <form className="change-password-modal-auth-form" onSubmit={handleSubmit}>
+      <h2 className="change-password-modal-auth-form-title">Изменить пароль</h2>
+      <p className="change-password-modal-auth-form-subtitle">Укажите текущий и новый пароль</p>
+
+      {fieldError && (
+        <div className="change-password-modal-auth-error-global" role="alert">
+          {fieldError}
+        </div>
+      )}
+
+      {successMessage && (
+        <div className="change-password-modal-auth-success-global" role="alert">
+          {successMessage}
+        </div>
+      )}
+
+      {/* Текущий пароль */}
+      <div className="change-password-modal-auth-form-group">
+        <label htmlFor="change-current-password">
+          Текущий пароль <span className="change-password-modal-required-star">*</span>
+        </label>
+        <div className="change-password-modal-password-input-wrapper">
+          <input
+            id="change-current-password"
+            type={showCurrentPassword ? 'text' : 'password'}
+            placeholder="Введите текущий пароль"
+            value={currentPassword}
+            onChange={(e) =>
+              handleFieldChange('currentPassword', e.target.value)
+            }
+            required
+            disabled={loading}
+            className={errors.currentPassword ? 'change-password-modal-error' : ''}
+          />
+          <button
+            type="button"
+            className="change-password-modal-password-toggle"
+            onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+            tabIndex="-1"
+            disabled={loading}
+          >
+            <img
+              className="change-password-modal-password-toggle-icon"
+              src={showCurrentPassword ? eye_crossed : eye}
+              alt="Видимость пароля"
+            />
+          </button>
+        </div>
+        {errors.currentPassword && (
+          <span className="change-password-modal-auth-error">{errors.currentPassword}</span>
+        )}
+      </div>
+
+      {/* Новый пароль */}
+      <div className="change-password-modal-auth-form-group">
+        <label htmlFor="change-new-password">
+          Новый пароль <span className="change-password-modal-required-star">*</span>
+        </label>
+        <div className="change-password-modal-password-input-wrapper">
+          <input
+            id="change-new-password"
+            type={showNewPassword ? 'text' : 'password'}
+            placeholder="Минимум 8 символов"
+            value={newPassword}
+            onChange={(e) => handleFieldChange('newPassword', e.target.value)}
+            required
+            minLength={8}
+            disabled={loading}
+            className={errors.newPassword ? 'change-password-modal-error' : ''}
+          />
+          <button
+            type="button"
+            className="change-password-modal-password-toggle"
+            onClick={() => setShowNewPassword(!showNewPassword)}
+            tabIndex="-1"
+            disabled={loading}
+          >
+            <img
+              className="change-password-modal-password-toggle-icon"
+              src={showNewPassword ? eye_crossed : eye}
+              alt="Видимость пароля"
+            />
+          </button>
+        </div>
+        {errors.newPassword && (
+          <span className="change-password-modal-auth-error">{errors.newPassword}</span>
+        )}
+        {newPassword && !errors.newPassword && passwordStrength && (
+          <div className="change-password-modal-password-strength">
+            <div
+              className={`change-password-modal-password-strength-bar ${passwordStrength.class}`}
+            ></div>
+            <span
+              className={`change-password-modal-password-strength-text ${passwordStrength.class}`}
+            >
+              {passwordStrength.label}
+            </span>
+          </div>
+        )}
+      </div>
+
+      {/* Подтверждение пароля */}
+      <div className="change-password-modal-auth-form-group">
+        <label htmlFor="change-confirm-password">
+          Подтверждение нового пароля <span className="change-password-modal-required-star">*</span>
+        </label>
+        <div className="change-password-modal-password-input-wrapper">
+          <input
+            id="change-confirm-password"
+            type={showConfirmPassword ? 'text' : 'password'}
+            placeholder="Повторите новый пароль"
+            value={confirmPassword}
+            onChange={(e) =>
+              handleFieldChange('confirmPassword', e.target.value)
+            }
+            required
+            minLength={8}
+            disabled={loading}
+            className={errors.confirmPassword ? 'change-password-modal-error' : ''}
+          />
+          <button
+            type="button"
+            className="change-password-modal-password-toggle"
+            onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+            tabIndex="-1"
+            disabled={loading}
+          >
+            <img
+              className="change-password-modal-password-toggle-icon"
+              src={showConfirmPassword ? eye_crossed : eye}
+              alt="Видимость пароля"
+            />
+          </button>
+        </div>
+        {errors.confirmPassword && (
+          <span className="change-password-modal-auth-error">{errors.confirmPassword}</span>
+        )}
+      </div>
+
+      <Button
+        type="submit"
+        variant="primary"
+        disabled={loading || hasErrors || isEmpty}
+        fullWidth
+      >
+        {loading ? (
+          <>
+            <span className="change-password-modal-spinner"></span>
+            Обновление...
+          </>
+        ) : (
+          'Сохранить пароль'
+        )}
+      </Button>
+    </form>
+  );
+}
+
+export default function ChangePasswordModal({ isOpen, onClose }) {
+  const [isClosing, setIsClosing] = useState(false);
+
+  // Закрытие с анимацией
+  const handleClose = () => {
+    setIsClosing(true);
+    setTimeout(() => {
+      setIsClosing(false);
+      onClose();
+    }, 300);
+  };
+
+  // Закрытие по Escape
+  useEffect(() => {
+    const handleEscape = (e) => {
+      if (e.key === 'Escape' && isOpen) handleClose();
+    };
+    document.addEventListener('keydown', handleEscape);
+    return () => document.removeEventListener('keydown', handleEscape);
+  }, [isOpen]);
+
+  if (!isOpen) return null;
+
+  return (
+    <div
+      className={`change-password-modal-modal-background ${isClosing ? 'change-password-modal-closing' : ''}`}
+      onClick={(e) => {
+        if (e.target === e.currentTarget) handleClose();
+      }}
+    >
+      <div className={`change-password-modal-modal-window ${isClosing ? 'change-password-modal-closing' : ''}`}>
+        <div className="change-password-modal-modal-window-top-buttons">
+          <button type="button" className="change-password-modal-modal-window-top-button change-password-modal-active">
+            Смена пароля
+          </button>
+          <button
+            type="button"
+            className="change-password-modal-modal-close-button"
+            onClick={handleClose}
+            title="Закрыть"
+          >
+            <img src={closeIcon} alt="Закрыть" />
+          </button>
+        </div>
+
+        <div className="change-password-modal-modal-window-content">
+          <ChangePasswordContent onClose={handleClose} />
+        </div>
+      </div>
+    </div>
+  );
+}

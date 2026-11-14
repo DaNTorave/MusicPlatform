@@ -1,0 +1,218 @@
+.original-track-manager-collab-search-container {
+  position: relative;
+  width: 100%;
+}
+
+.original-track-manager-collab-dropdown-menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  max-height: 180px;
+  overflow-y: auto;
+  z-index: 50;
+}
+
+.original-track-manager-collab-dropdown-item {
+  padding: 8px 12px;
+  font-size: 0.9rem;
+  color: #14161a;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.original-track-manager-collab-dropdown-item:hover {
+  background: #f1f5f9;
+  color: #1773cf;
+}
+
+.original-track-manager-entity-card-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  gap: 10px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+}
+
+.original-track-manager-entity-card-row.is-cover {
+  background: #f0fdf4;
+  border-color: #bbf7d0;
+}
+
+.original-track-manager-entity-card-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  flex: 1;
+}
+
+.original-track-manager-entity-name-text {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: #0f172a;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.original-track-manager-entity-genre-text {
+  font-size: 0.75rem;
+  color: #64748b;
+  font-weight: 500;
+}
+
+.original-track-manager-entity-badge {
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  white-space: nowrap;
+}
+
+.original-track-manager-entity-badge.cover-badge {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+.original-track-manager-entity-card-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.original-track-manager-entity-icon-btn {
+  width: 26px;
+  height: 26px;
+  border: 1px solid #e2e8f0;
+  background: #ffffff;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 0.75rem;
+  color: #475569;
+  transition: all 0.15s ease;
+  padding: 0;
+}
+
+.original-track-manager-entity-icon-btn:hover:not(:disabled) {
+  border-color: #cbd5e1;
+  background: #f1f5f9;
+  color: #0f172a;
+}
+
+.original-track-manager-entity-icon-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.original-track-manager-entity-icon-btn.original-track-manager-remove-btn {
+  background: #fef2f2;
+  border-color: #fecaca;
+  color: #dc2626;
+}
+
+.original-track-manager-entity-icon-btn.original-track-manager-remove-btn:hover:not(
+    :disabled
+  ) {
+  background: #fee2e2;
+  border-color: #f87171;
+  color: #b91c1c;
+}
+
+.original-track-manager-entity-icon-btn.original-track-manager-remove-btn img {
+  width: 12px;
+  height: 12px;
+  filter: invert(19%) sepia(88%) saturate(5412%) hue-rotate(352deg)
+    brightness(92%) contrast(93%);
+}
+
+.original-track-manager-entity-dropdown-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 9px 14px;
+  font-size: 0.88rem;
+  color: #1e293b;
+  cursor: pointer;
+  border-bottom: 1px solid #f1f5f9;
+  transition: background 0.15s ease;
+}
+
+.original-track-manager-entity-dropdown-item:last-child {
+  border-bottom: none;
+}
+
+.original-track-manager-entity-dropdown-item:hover {
+  background: #f0f7ff;
+  color: #1773cf;
+}
+
+.original-track-manager-collab-search-input {
+  padding: 9px 14px;
+  font-size: 0.9rem;
+}
+
+.original-track-manager-collab-dropdown-empty {
+  color: #94a3b8;
+}
+
+.original-track-manager {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.original-track-hint {
+  font-size: 0.78rem;
+  color: #64748b;
+  line-height: 1.3;
+  margin: 0 0 2px 0;
+}
+
+.entity-name-bold {
+  font-weight: 600;
+}
+
+.original-track-manager-input-element {
+  width: 100%;
+  padding: 13px 16px;
+  border-radius: 14px;
+  background: #fcfafafa;
+  border: 2px solid #e8e0e0;
+  color: #14161a;
+  font-size: 0.98rem;
+  outline: none;
+  font-family: inherit;
+  transition: all 0.25s ease;
+  box-sizing: border-box;
+}
+
+.original-track-manager-input-element:hover {
+  border-color: #d0c8c8;
+  background: #ffffff;
+}
+
+.original-track-manager-input-element:focus {
+  border-color: #1773cf;
+  background: #ffffff;
+  box-shadow: 0 0 0 4px rgba(23, 115, 207, 0.12);
+}
+
+.original-track-manager-input-element:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  background: #f5f0f0;
+}

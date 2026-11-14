@@ -1,0 +1,390 @@
+/* Контейнер строки трека */
+.track-row-item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 16px;
+  border-radius: 12px;
+  background: #ffffff;
+  border: 1px solid #f1f5f9;
+  transition: all 0.2s ease;
+  cursor: pointer;
+  user-select: none;
+  position: relative;
+}
+
+.track-row-item:hover {
+  background: #f8fafc;
+  border-color: #e2e8f0;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.04);
+}
+
+/* Повышение слоя строки при открытом меню для предотвращения перекрытия соседними строками */
+.track-row-item.menu-open {
+  z-index: 50;
+  transform: none;
+}
+
+/* Порядковый номер трека */
+.track-row-num {
+  width: 24px;
+  text-align: center;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #94a3b8;
+  flex-shrink: 0;
+}
+
+/* Обложка трека с кнопкой воспроизведения поверх */
+.track-row-cover-wrapper {
+  position: relative;
+  width: 44px;
+  height: 44px;
+  border-radius: 8px;
+  overflow: hidden;
+  flex-shrink: 0;
+  background: #f1f5f9;
+}
+
+.track-row-cover {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.track-cover-play-btn {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: none;
+  background: rgba(15, 23, 42, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  cursor: pointer;
+  padding: 0;
+}
+
+.track-row-item:hover .track-cover-play-btn,
+.track-cover-play-btn.track-row-visible {
+  opacity: 1;
+}
+
+.track-row-item.active {
+  background: #f0f7ff;
+  border-color: #bfdbfe;
+}
+
+/* Кнопка воспроизведения без обложки */
+.track-play-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: none;
+  background: #eff6ff;
+  color: #007bff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: all 0.2s ease;
+  padding: 0;
+}
+
+.track-play-btn:hover,
+.track-play-btn.track-row-visible {
+  background: #007bff;
+}
+
+.player-icon-svg {
+  width: 18px;
+  height: 18px;
+  filter: brightness(0) invert(1);
+}
+
+.track-play-btn .player-icon-svg {
+  filter: invert(34%) sepia(98%) saturate(2250%) hue-rotate(202deg)
+    brightness(100%) contrast(104%);
+}
+
+.track-play-btn:hover .player-icon-svg,
+.track-play-btn.track-row-visible .player-icon-svg {
+  filter: brightness(0) invert(1);
+}
+
+/* Основная информация о треке */
+.track-row-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.track-row-title-container {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.track-row-title {
+  font-size: 0.96rem;
+  font-weight: 600;
+  color: #1e293b;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.track-row-title-link {
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+
+.track-row-title-link:hover {
+  color: #007bff;
+}
+
+/* Метка кавера */
+.track-cover-badge {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  padding: 2px 7px;
+  border-radius: 6px;
+  background: #e0f2fe;
+  color: #0369a1;
+  flex-shrink: 0;
+}
+
+.track-cover-badge.track-row-clickable {
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.track-cover-badge.track-row-clickable:hover {
+  background: #bae6fd;
+}
+
+/* Список исполнителей */
+.track-row-artists-list {
+  font-size: 0.84rem;
+  color: #64748b;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.track-row-artist-link {
+  color: #64748b;
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+
+.track-row-artist-link:hover {
+  color: #007bff;
+  text-decoration: underline;
+}
+
+.track-row-artist-name {
+  color: #64748b;
+}
+
+.artist-separator {
+  color: #94a3b8;
+}
+
+/* Длительность трека */
+.track-row-duration {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: #64748b;
+  margin-right: 4px;
+  flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Блок кнопок действий */
+.track-row-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.track-action-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0;
+  transition:
+    background 0.15s ease,
+    transform 0.15s ease;
+}
+
+.track-action-btn:hover,
+.track-action-btn.is-open {
+  background: #e2e8f0;
+}
+
+.track-action-btn:active {
+  transform: scale(0.95);
+}
+
+.action-icon {
+  width: 17px;
+  height: 17px;
+  opacity: 0.65;
+  transition:
+    opacity 0.15s ease,
+    transform 0.15s ease;
+}
+
+.track-action-btn:hover .action-icon {
+  opacity: 1;
+}
+
+/* Иконка активного избранного */
+.action-icon:not(.fav-icon-active) {
+  filter: grayscale(100%);
+}
+
+.fav-icon-active {
+  opacity: 1;
+  filter: none;
+}
+
+/* Выпадающее меню дополнительных действий с треком */
+.track-more-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.track-more-popover {
+  position: absolute;
+  right: 0;
+  min-width: 215px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  box-shadow: 0 10px 28px rgba(15, 23, 42, 0.16);
+  padding: 6px;
+  z-index: 120;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+/* Открытие меню вниз */
+.track-more-popover.open-down {
+  top: calc(100% + 6px);
+  bottom: auto;
+  animation: track-row-trackMenuFadeInDown 0.16s ease-out;
+}
+
+/* Открытие меню вверх */
+.track-more-popover.open-up {
+  bottom: calc(100% + 6px);
+  top: auto;
+  animation: track-row-trackMenuFadeInUp 0.16s ease-out;
+}
+
+.track-more-item {
+  width: 100%;
+  border: none;
+  background: transparent;
+  padding: 9px 12px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.88rem;
+  font-weight: 500;
+  color: #1e293b;
+  cursor: pointer;
+  text-align: left;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease;
+}
+
+.track-more-item:hover {
+  background: #f1f5f9;
+}
+
+.track-more-item.danger {
+  color: #dc2626;
+}
+
+.track-more-item.danger:hover {
+  background: #fef2f2;
+}
+
+.track-more-item-icon {
+  width: 16px;
+  height: 16px;
+  opacity: 0.75;
+  flex-shrink: 0;
+}
+
+.active-fav {
+  opacity: 1;
+}
+
+.download-btn {
+  cursor: pointer;
+}
+
+.more-btn {
+  cursor: pointer;
+}
+
+.edit-btn {
+  cursor: pointer;
+}
+
+.delete-btn {
+  cursor: pointer;
+}
+
+@keyframes track-row-trackMenuFadeInDown {
+  from {
+    opacity: 0;
+
+    transform: translateY(-6px);
+  }
+
+  to {
+    opacity: 1;
+
+    transform: translateY(0);
+  }
+}
+
+@keyframes track-row-trackMenuFadeInUp {
+  from {
+    opacity: 0;
+
+    transform: translateY(6px);
+  }
+
+  to {
+    opacity: 1;
+
+    transform: translateY(0);
+  }
+}

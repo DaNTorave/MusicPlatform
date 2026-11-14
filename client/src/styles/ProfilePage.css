@@ -1,0 +1,374 @@
+.profile-page {
+  display: flex;
+  width: 100%;
+  background: #ffffff;
+  border-radius: 20px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.04);
+  padding: 2.5rem;
+  border: 1px solid #f0eded;
+  box-sizing: border-box;
+}
+
+.profile-layout {
+  display: grid;
+  grid-template-columns: 340px 1fr;
+  gap: 3rem;
+  width: 100%;
+  align-items: start;
+}
+
+.profile-sidebar {
+  display: flex;
+  flex-direction: column;
+  background: #fbf9f9;
+  border: 1px solid #f0ecec;
+  border-radius: 18px;
+  padding: 2rem 1.75rem;
+  position: sticky;
+  top: 24px;
+}
+
+.profile-content {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.profile-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 1.25rem;
+  margin-bottom: 1.75rem;
+  padding-bottom: 1.75rem;
+  border-bottom: 1px solid #f0ecec;
+}
+
+.profile-avatar {
+  position: relative;
+  width: 124px;
+  height: 124px;
+  flex-shrink: 0;
+}
+
+.profile-avatar img {
+  width: 124px;
+  height: 124px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 4px solid #ffffff;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+  display: block;
+}
+
+.profile-avatar-edit-badge {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  background: #14161a;
+  color: #ffffff;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 5px 10px;
+  border-radius: 22px;
+  cursor: pointer;
+  border: 2px solid #ffffff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  transition:
+    transform 0.2s ease,
+    background-color 0.2s ease;
+  user-select: none;
+}
+
+.profile-avatar-edit-badge:hover {
+  background: #252830;
+  transform: scale(1.02);
+}
+
+.profile-info {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  width: 100%;
+}
+
+.profile-info h1 {
+  margin: 0;
+  font-size: 1.75rem;
+  font-weight: 800;
+  color: #14161a;
+  letter-spacing: -0.4px;
+  word-break: break-word;
+}
+
+.profile-login {
+  color: #777;
+  font-size: 0.95rem;
+  padding: 0.15rem 0 0.45rem 0;
+}
+
+.profile-badge {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+}
+
+.profile-page-role-badge {
+  padding: 0.3rem 0.85rem;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.profile-page-role-badge.owner {
+  background: #fef3c7;
+  color: #b45309;
+  border: 1px solid #fde68a;
+}
+
+.profile-page-role-badge.admin {
+  background: #fee2e2;
+  color: #b91c1c;
+  border: 1px solid #fecaca;
+}
+
+.profile-page-role-badge.moderator {
+  background: #e0e7ff;
+  color: #4338ca;
+  border: 1px solid #c7d2fe;
+}
+
+.profile-page-role-badge.member {
+  background: #f1f5f9;
+  color: #475569;
+  border: 1px solid #e2e8f0;
+}
+
+.premium-badge {
+  padding: 0.3rem 0.85rem;
+  border-radius: 20px;
+  background: linear-gradient(135deg, #ffd700 0%, #ffa500 100%);
+  color: #452600;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.profile-details {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.detail-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid #f0ecec;
+  font-size: 0.95rem;
+}
+
+.detail-item:last-child {
+  border-bottom: none;
+}
+
+.detail-label {
+  color: #888;
+  font-size: 0.82rem;
+  font-weight: 500;
+}
+
+.detail-value {
+  color: #14161a;
+  font-weight: 600;
+  word-break: break-word;
+}
+
+.profile-actions {
+  margin-top: 1.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid #f0ecec;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.profile-action-btn {
+  width: 100%;
+  padding: 0.8rem 1.2rem;
+  border: none;
+  border-radius: 12px;
+  background: #14161a;
+  color: #f8efef;
+  font-weight: 700;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: center;
+}
+
+.profile-action-btn:hover {
+  background: #252830;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(20, 22, 26, 0.14);
+}
+
+.profile-favorites-section {
+  margin-top: 2.25rem;
+  padding-top: 2rem;
+  border-top: 1px solid #f0ecec;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.profile-favorites-section.profile-section-first {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: none;
+}
+
+.profile-favorites-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.profile-favorites-title {
+  margin: 0;
+  font-size: 1.4rem;
+  font-weight: 800;
+  color: #14161a;
+}
+
+.profile-favorites-subtitle {
+  font-size: 0.85rem;
+  color: #888;
+}
+
+.profile-favorites-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 460px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.profile-show-all-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border: none;
+  border-radius: 10px;
+  background: #eef6fc;
+  color: #1773cf;
+  font-weight: 700;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.profile-show-all-btn:hover {
+  background: #e0f2fe;
+  transform: translateX(3px);
+}
+
+.profile-page-artist-page-state {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 250px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #666;
+}
+
+.profile-page-empty-text {
+  color: #888;
+  font-size: 0.95rem;
+  font-style: italic;
+  margin: 0;
+}
+
+.profile-avatar-file-input {
+  display: none;
+}
+
+.playlists-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(165px, 1fr));
+  gap: 1.25rem;
+}
+
+.playlist-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  background: #fbf9f9;
+  padding: 12px;
+  border-radius: 16px;
+  border: 1px solid #f0ecec;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+}
+
+.playlist-card:hover {
+  transform: translateY(-4px);
+  background: #ffffff;
+  border-color: #e5e0e0;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.06);
+}
+
+.playlist-card-cover {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  border-radius: 12px;
+  object-fit: cover;
+  display: block;
+}
+
+.playlist-card-info {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin-top: 10px;
+}
+
+.playlist-card-title {
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: #14161a;
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.playlist-card-count {
+  font-size: 0.8rem;
+  color: #888;
+  font-weight: 500;
+}
+
+@media (max-width: 960px) {
+  .profile-page {
+    padding: 1.75rem;
+  }
+
+  .profile-layout {
+    grid-template-columns: 1fr;
+    gap: 2rem;
+  }
+
+  .profile-sidebar {
+    position: static;
+  }
+}

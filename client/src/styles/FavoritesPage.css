@@ -1,0 +1,168 @@
+.favorites-page-artist-page {
+  display: flex;
+  flex-direction: column;
+  gap: 2.5rem;
+  width: 100%;
+  background: #ffffff;
+  border-radius: 20px;
+  padding: 3rem;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.04);
+  border: 1px solid #f0eded;
+}
+
+.favorites-page-artist-header {
+  display: flex;
+  align-items: center;
+  gap: 2.5rem;
+  border-bottom: 1px solid #f0ecec;
+  padding-bottom: 2.5rem;
+}
+
+.favorites-page-artist-tag {
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: #1773cf;
+  background: #eef6fc;
+  padding: 4px 10px;
+  border-radius: 20px;
+  display: inline-block;
+  margin-bottom: 8px;
+}
+
+.favorites-page-artist-title {
+  font-size: 2.2rem;
+  font-weight: 800;
+  color: #14161a;
+  margin: 0 0 6px 0;
+}
+
+.favorites-page-artist-meta-string {
+  padding: 0 7px;
+}
+
+.favorites-page-artist-section {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.favorites-page-all-tracks-action h2 {
+  font-size: 1.4rem;
+  font-weight: 800;
+  color: #14161a;
+  letter-spacing: -0.3px;
+}
+
+.favorites-page-empty-text {
+  color: #888;
+  font-size: 0.95rem;
+  font-style: italic;
+}
+
+.favorites-page-album-tracks-container {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  min-height: 200px;
+}
+
+@media (max-width: 768px) {
+  .favorites-page-artist-page {
+    padding: 1.5rem;
+  }
+
+  .favorites-page-artist-header {
+    flex-direction: column;
+
+    text-align: center;
+
+    gap: 1.5rem;
+  }
+}
+
+.favorites-page-all-tracks-action {
+  display: flex;
+  justify-content: space-between;
+}
+
+.favorites-page-all-tracks-action button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 14px;
+  height: 32px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background: #eef6fc;
+  color: #1773cf;
+  font-size: 0.95rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  user-select: none;
+}
+
+.favorites-page-all-tracks-action button:hover {
+  background: #e0f2fe;
+  color: #0f5a9e;
+  transform: translateX(-3px);
+}
+
+.favorites-page-all-tracks-action button:active {
+  transform: translateX(-1px) scale(0.98);
+}
+
+.favorites-page-content-search {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  margin-bottom: 2rem;
+  position: relative;
+  z-index: 2;
+}
+
+.favorites-page-search-bar-wrapper {
+  position: relative;
+  width: 100%;
+  max-width: 640px;
+}
+
+.favorites-header-icon-box {
+  width: 120px;
+  height: 120px;
+  border-radius: 20px;
+  background: #fee2e2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.favorites-header-icon-img {
+  width: 60px;
+  height: 60px;
+}
+
+.favorites-header-tag {
+  background: #fee2e2;
+  color: #dc2626;
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  padding: 4px 10px;
+  border-radius: 20px;
+  display: inline-block;
+  margin-bottom: 8px;
+  width: fit-content;
+}
+
+.favorites-search-block {
+  margin-bottom: 1rem;
+}
+
+.favorites-page-artist-info {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}

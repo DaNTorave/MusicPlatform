@@ -1,0 +1,146 @@
+.input-field-container {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+  position: relative;
+}
+
+.input-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #333;
+  letter-spacing: 0.3px;
+  transition: color 0.2s;
+}
+
+.input-field-container:focus-within .input-label {
+  color: #1773cf;
+}
+
+.input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+.input-field-input-element {
+  width: 100%;
+  padding: 13px 16px;
+  border-radius: 14px;
+  background: #fcfafafa;
+  border: 2px solid #e8e0e0;
+  color: #14161a;
+  font-size: 0.98rem;
+  outline: none;
+  font-family: inherit;
+  transition: all 0.25s ease;
+  box-sizing: border-box;
+}
+
+.input-field-input-element.with-left-icon {
+  padding-left: 44px;
+}
+
+.input-field-input-element.with-clear {
+  padding-right: 44px;
+}
+
+.input-field-input-element:hover {
+  border-color: #d0c8c8;
+  background: #ffffff;
+}
+
+.input-field-input-element:focus {
+  border-color: #1773cf;
+  background: #ffffff;
+  box-shadow: 0 0 0 4px rgba(23, 115, 207, 0.12);
+}
+
+.input-field-input-element:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  background: #f5f0f0;
+}
+
+.input-left-icon {
+  position: absolute;
+  left: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  color: #94a3b8;
+  z-index: 1;
+}
+
+.input-clear-button {
+  position: absolute;
+  right: 12px;
+  background: #e2e8f0;
+  border: none;
+  cursor: pointer;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  padding: 0;
+}
+
+.input-clear-button:hover {
+  background: #cbd5e1;
+  transform: scale(1.1);
+}
+
+.input-clear-button img {
+  width: 10px;
+  height: 10px;
+  opacity: 0.7;
+}
+
+.input-eye-button {
+  position: absolute;
+  right: 12px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.input-eye-button img {
+  width: 20px;
+  height: 20px;
+  opacity: 0.6;
+  transition: opacity 0.2s ease;
+}
+
+.input-eye-button:hover img {
+  opacity: 1;
+}
+
+.input-error-text {
+  color: #e74c3c;
+  font-size: 0.8rem;
+  margin-top: 2px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  background: rgba(231, 76, 60, 0.08);
+  border-radius: 6px;
+  border-left: 3px solid #e74c3c;
+}
+
+.input-field-required-star {
+  color: #e74c3c;
+  font-weight: 700;
+  margin-left: 2px;
+}

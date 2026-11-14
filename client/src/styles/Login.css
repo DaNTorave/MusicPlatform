@@ -1,0 +1,184 @@
+.login-auth-error-global {
+  background-color: #fee2e2;
+  border: 1px solid #fecaca;
+  color: #991b1b;
+  padding: 0.75rem 1rem;
+  border-radius: 0.5rem;
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+}
+
+.login-spinner {
+  display: inline-block;
+  width: 1rem;
+  height: 1rem;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  border-top-color: #fff;
+  animation: login-login-spin 0.8s ease-in-out infinite;
+}
+
+.login-auth-forgot-password {
+  margin-top: 0.5rem;
+  text-align: right;
+  font-size: 0.875rem;
+}
+
+.login-auth-forgot-password a {
+  color: #3b82f6;
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.login-auth-forgot-password a:hover {
+  text-decoration: underline;
+}
+
+.login-auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  animation: login-login-formFadeIn 0.4s ease;
+}
+
+.login-auth-form-title {
+  font-size: 1.75rem;
+  font-weight: 800;
+  color: #14161a;
+  margin: 0 0 2px 0;
+  letter-spacing: -0.5px;
+  background: linear-gradient(135deg, #14161a 0%, #2d3038 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.login-auth-form-subtitle {
+  color: #888;
+  font-size: 0.95rem;
+  margin: -8px 0 4px 0;
+  font-weight: 400;
+}
+
+.login-auth-divider {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  color: #b0a8a8;
+  font-size: 0.85rem;
+  margin: 4px 0;
+  font-weight: 500;
+}
+
+.login-auth-divider::before,
+.login-auth-divider::after {
+  content: '';
+  flex: 1;
+  height: 1.5px;
+  background: linear-gradient(90deg, transparent, #e0d8d8, transparent);
+}
+
+.login-social-buttons {
+  display: flex;
+  gap: 12px;
+}
+
+.login-social-button-icon {
+  height: 20px;
+}
+
+.login-auth-form-footer {
+  text-align: center;
+  font-size: 0.9rem;
+  color: #888;
+  margin-top: 4px;
+  padding-top: 4px;
+}
+
+.login-auth-form-footer a {
+  color: #1773cf;
+  text-decoration: none;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+  position: relative;
+}
+
+.login-auth-form-footer a::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: #1773cf;
+  transform: scaleX(0);
+  transition: transform 0.3s ease;
+}
+
+.login-auth-form-footer a:hover::after {
+  transform: scaleX(1);
+}
+
+.login-auth-form-footer a:hover {
+  color: #0f5a9e;
+}
+
+@media (max-width: 560px) {
+  .login-auth-form {
+    gap: 16px;
+  }
+
+  .login-auth-form-title {
+    font-size: 1.5rem;
+  }
+
+  .login-social-buttons {
+    flex-direction: column;
+  }
+
+  .login-auth-form-title {
+    font-size: 1.25rem;
+  }
+
+  .login-social-buttons {
+    flex-direction: column;
+  }
+}
+
+@media (max-width: 400px) {
+  .login-auth-form {
+    gap: 14px;
+  }
+
+  .login-auth-form-title {
+    font-size: 1.3rem;
+  }
+
+  .login-auth-form-subtitle {
+    font-size: 0.85rem;
+  }
+}
+
+@keyframes login-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes login-formFadeIn {
+  from {
+    opacity: 0;
+
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+
+    transform: translateY(0);
+  }
+}

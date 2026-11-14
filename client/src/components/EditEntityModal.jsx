@@ -1,0 +1,423 @@
+import React, { useState, useEffect, useRef, useMemo } from 'react';
+import { apiClient } from '../api/apiClient';
+
+import Button from './Button';
+import TrackSlotItem from './TrackSlotItem';
+import AgeRestrictionToggle from './AgeRestrictionToggle';
+import ImageCropModal from './ImageCropModal';
+
+import defaultCover from '../assets/Шотландская веслоухая.jpg';
+import closeIcon from '../assets/close-icon.svg';
+
+import '../styles/EditEntityModal.css';
+
+export default function EditEntityModal({
+  isOpen,
+  onClose,
+  item,
+  type,
+  onSuccess,
+}) {
+  const [title, setTitle] = useState('');
+  const [availableGenres, setAvailableGenres] = useState([]);
+  const [selectedGenres, setSelectedGenres] = useState([]);
+  const [genreSearch, setGenreSearch] = useState('');
+  const [coverFile, setCoverFile] = useState(null);
+  const [coverPreview, setCoverPreview] = useState('');
+  const [audioFile, setAudioFile] = useState(null);
+  const [ageRestriction, setAgeRestriction] = useState(false);
+  const [tracks, setTracks] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
+
+  // Состояния для кадрирования
+  const [cropModalOpen, setCropModalOpen] = useState(false);
+  const [rawImageSrc, setRawImageSrc] = useState('');
+  const fileInputRef = useRef(null);
+
+  // Загрузка справочника жанров при открытии модального окна для исполнителя
+  useEffect(() => {
+    if (!isOpen || type !== 'artist') return;
+    apiClient
+      .getGenres()
+      .then((res) => {
+        if (res?.data) setAvailableGenres(res.data);
+      })
+      .catch(() => {});
+  }, [isOpen, type]);
+
+  useEffect(() => {
+    if (item) {
+      setTitle(item.title || item.name || '');
+      setGenreSearch('');
+      setCoverPreview(item.cover || item.avatar || '');
+      setCoverFile(null);
+      setAudioFile(null);
+      setErrorMsg('');
+      setAgeRestriction(
+        Boolean(item.age_restriction || item.has_age_restriction)
+      );
+
+      if (type === 'artist') {
+        const rawList =
+          Array.isArray(item.genres) && item.genres.length > 0
+            ? item.genres
+            : item.genre
+              ? item.genre.split(',').map((s) => s.trim()).filter(Boolean)
+              : [];
+        setSelectedGenres(rawList);
+      } else {
+        setSelectedGenres([]);
+      }
+
+      if (type === 'album') {
+        setTracks(
+          (item.tracks || []).map((t) => ({
+            id: t.id,
+            title: t.title || '',
+            audioFile: null,
+            age_restriction: Boolean(
+              t.age_restriction || t.has_age_restriction
+            ),
+          }))
+        );
+      }
+    }
+  }, [item, type]);
+
+  // Фильтрация жанров по поисковому запросу
+  const filteredGenres = useMemo(() => {
+    const q = genreSearch.trim().toLowerCase();
+    if (!q) return availableGenres;
+    return availableGenres.filter(
+      (g) =>
+        (g.title_ru && g.title_ru.toLowerCase().includes(q)) ||
+        (g.key && g.key.toLowerCase().includes(q))
+    );
+  }, [availableGenres, genreSearch]);
+
+  if (!isOpen || !item) return null;
+
+  // Переключение выбора жанра из кластера
+  const handleToggleGenre = (genreKey) => {
+    setSelectedGenres((prev) =>
+      prev.includes(genreKey)
+        ? prev.filter((k) => k !== genreKey)
+        : [...prev, genreKey]
+    );
+  };
+
+  // Обработчик выбора файла обложки
+  const handleCoverSelect = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setRawImageSrc(URL.createObjectURL(file));
+      setCropModalOpen(true);
+    }
+    e.target.value = '';
+  };
+
+  // Завершение кадрирования
+  const handleCropComplete = (croppedFile, previewUrl) => {
+    setCoverFile(croppedFile);
+    setCoverPreview(previewUrl);
+  };
+
+  const handleAddTrackSlot = () => {
+    setTracks((prev) => [
+      ...prev,
+      { id: null, title: '', audioFile: null, age_restriction: false },
+    ]);
+  };
+
+  const handleRemoveTrack = (index) => {
+    setTracks((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const handleTrackChange = (index, field, value) => {
+    setTracks((prev) => {
+      const copy = [...prev];
+      copy[index] = {
+        ...copy[index],
+        [field === 'audio' ? 'audioFile' : field]: value,
+      };
+      return copy;
+    });
+  };
+
+  const moveTrack = (fromIndex, toIndex) => {
+    if (toIndex < 0 || toIndex >= tracks.length) return;
+    setTracks((prev) => {
+      const updated = [...prev];
+      const [moved] = updated.splice(fromIndex, 1);
+      updated.splice(toIndex, 0, moved);
+      return updated;
+    });
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setErrorMsg('');
+
+    if (type === 'artist' && selectedGenres.length === 0) {
+      setErrorMsg('Выберите хотя бы один жанр из кластера');
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const formData = new FormData();
+      formData.append('schema', type);
+      formData.append('id', item.id);
+      formData.append('title', title.trim());
+
+      if (type === 'artist') {
+        formData.append('genre', selectedGenres.join(', '));
+        selectedGenres.forEach((g) => formData.append('genres[]', g));
+      }
+      if (coverFile) {
+        formData.append('cover', coverFile);
+      }
+      if (type === 'track' && audioFile) {
+        formData.append('audio', audioFile);
+      }
+      if (type === 'track') {
+        formData.append('age_restriction', ageRestriction ? 'true' : 'false');
+      }
+
+      if (type === 'album') {
+        tracks.forEach((track, idx) => {
+          if (track.id) formData.append(`tracks[${idx}][id]`, track.id);
+          formData.append(`tracks[${idx}][title]`, track.title);
+          formData.append(
+            `tracks[${idx}][position]`,
+            track.position || idx + 1
+          );
+          formData.append(
+            `tracks[${idx}][age_restriction]`,
+            track.age_restriction ? 'true' : 'false'
+          );
+          if (track.audioFile) {
+            formData.append(`tracks[${idx}][audio]`, track.audioFile);
+          }
+        });
+      }
+
+      await apiClient.upload('/api/moderation/approve-with-edit', formData);
+      if (onSuccess) onSuccess();
+      onClose();
+    } catch (err) {
+      setErrorMsg(
+        err.data?.error || err.message || 'Ошибка сохранения изменений'
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getModalTitle = () => {
+    switch (type) {
+      case 'artist':
+        return 'Редактирование исполнителя';
+      case 'album':
+        return 'Редактирование альбома';
+      case 'track':
+        return 'Редактирование трека';
+      default:
+        return 'Редактирование';
+    }
+  };
+
+  const isSaveDisabled =
+    loading ||
+    !title.trim() ||
+    (type === 'artist' && selectedGenres.length === 0);
+
+  return (
+    <>
+      <ImageCropModal
+        isOpen={cropModalOpen}
+        imageSrc={rawImageSrc}
+        cropShape={type === 'artist' ? 'circle' : 'square'}
+        onClose={() => setCropModalOpen(false)}
+        onCropComplete={handleCropComplete}
+      />
+
+      <div
+        className="edit-entity-modal-modal-background"
+        onClick={(e) => e.target === e.currentTarget && onClose()}
+      >
+        <div
+          className={`edit-entity-modal-modal-window ${type === 'album' ? 'edit-entity-modal-modal-window-wide' : 'edit-entity-modal-modal-window-narrow'}`}
+        >
+          <div className="edit-entity-modal-modal-window-top-buttons">
+            <button type="button" className="edit-entity-modal-modal-window-top-button edit-entity-modal-active">
+              {getModalTitle()}
+            </button>
+            <button
+              type="button"
+              className="edit-entity-modal-modal-close-button"
+              onClick={onClose}
+            >
+              <img src={closeIcon} alt="Закрыть" />
+            </button>
+          </div>
+
+          <div className="edit-entity-modal-modal-window-content edit-entity-modal-modal-window-content-scroll">
+            <form className="edit-entity-modal-auth-form" onSubmit={handleSubmit}>
+              {errorMsg && <div className="edit-entity-modal-auth-error-global">{errorMsg}</div>}
+
+              <div className="edit-entity-modal-avatar-preview-container">
+                <div className="edit-entity-modal-avatar-preview-wrapper">
+                  <img
+                    src={coverPreview || defaultCover}
+                    alt="cover"
+                    className={`edit-entity-modal-avatar-preview-image ${type === 'artist' ? 'edit-entity-modal-circle' : ''}`}
+                  />
+                  <label className="edit-entity-modal-avatar-preview-badge">
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*"
+                      onChange={handleCoverSelect}
+                    />
+                    Сменить
+                  </label>
+                </div>
+              </div>
+
+              <div className="edit-entity-modal-auth-form-group">
+                <label>
+                  {type === 'artist' ? 'Имя исполнителя *' : 'Название *'}
+                </label>
+                <input
+                  type="text"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  required
+                  disabled={loading}
+                />
+              </div>
+
+              {type === 'artist' && (
+                <div className="edit-entity-modal-auth-form-group">
+                  <div className="edit-entity-modal-genre-header-row">
+                    <label className="edit-entity-modal-genre-header-label">
+                      Жанры исполнителя *
+                    </label>
+                    {selectedGenres.length > 0 && (
+                      <span className="edit-entity-modal-genre-selected-count">
+                        Выбрано: {selectedGenres.length}
+                      </span>
+                    )}
+                  </div>
+
+                  <input
+                    type="text"
+                    className="edit-entity-modal-input-element edit-entity-modal-genre-search-input"
+                    placeholder="Поиск жанра по названию..."
+                    value={genreSearch}
+                    onChange={(e) => setGenreSearch(e.target.value)}
+                    disabled={loading}
+                  />
+
+                  <div className="edit-entity-modal-genres-selector-list">
+                    {filteredGenres.length === 0 ? (
+                      <div className="edit-entity-modal-genre-empty-hint">
+                        Жанр не найден
+                      </div>
+                    ) : (
+                      filteredGenres.map((g) => {
+                        const isSelected = selectedGenres.includes(g.key);
+                        return (
+                          <button
+                            key={g.key}
+                            type="button"
+                            className={`edit-entity-modal-genre-chip-btn ${isSelected ? 'edit-entity-modal-active' : ''}`}
+                            onClick={() => handleToggleGenre(g.key)}
+                            disabled={loading}
+                          >
+                            {g.title_ru}
+                          </button>
+                        );
+                      })
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {type === 'track' && (
+                <div className="edit-entity-modal-auth-form-group">
+                  <label>Заменить аудиофайл (необязательно)</label>
+                  <input
+                    type="file"
+                    accept="audio/*"
+                    onChange={(e) => setAudioFile(e.target.files[0])}
+                    disabled={loading}
+                  />
+                </div>
+              )}
+
+              {type === 'track' && (
+                <AgeRestrictionToggle
+                  checked={ageRestriction}
+                  onChange={setAgeRestriction}
+                  disabled={loading}
+                />
+              )}
+
+              {type === 'album' && (
+                <div className="edit-entity-modal-auth-form-group">
+                  <div className="edit-entity-modal-track-list-header">
+                    <label>Список треков ({tracks.length} шт.):</label>
+                    <button
+                      type="button"
+                      className="edit-entity-modal-track-list-add-btn"
+                      onClick={handleAddTrackSlot}
+                    >
+                      + Добавить трек
+                    </button>
+                  </div>
+
+                  <div className="edit-entity-modal-scrollable-track-list">
+                    {tracks.map((track, i) => (
+                      <TrackSlotItem
+                        key={track.id || `new-${i}`}
+                        index={i}
+                        track={track}
+                        total={tracks.length}
+                        onChange={handleTrackChange}
+                        onMove={moveTrack}
+                        onRemove={handleRemoveTrack}
+                        disabled={loading}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div className="edit-entity-modal-modal-actions-row">
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={onClose}
+                  disabled={loading}
+                >
+                  Отмена
+                </Button>
+                <Button
+                  type="submit"
+                  variant="primary"
+                  disabled={isSaveDisabled}
+                >
+                  {loading ? 'Сохранение...' : 'Сохранить'}
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </>
+  );
+}

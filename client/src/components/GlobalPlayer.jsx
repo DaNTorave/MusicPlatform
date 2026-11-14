@@ -1,0 +1,307 @@
+import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
+import { useAudioPlayer } from '../context/AudioContext';
+import { useFavorites } from '../context/FavoritesContext';
+
+import AgeBadge from './AgeBadge';
+
+import defaultCover from '../assets/Шотландская веслоухая.jpg';
+import playIcon from '../assets/play-icon.svg';
+import pauseIcon from '../assets/pause-icon.svg';
+import prevIcon from '../assets/prev-icon.svg';
+import nextIcon from '../assets/next-icon.svg';
+import volumeIcon from '../assets/volume-icon.svg';
+import favoriteIcon from '../assets/favorite.svg';
+import downloadIcon from '../assets/download-icon.svg';
+
+import '../styles/GlobalPlayer.css';
+
+
+export default function GlobalPlayer() {
+  const {
+    currentTrack,
+    queue,
+    isPlaying,
+    playTrack,
+    nextTrack,
+    prevTrack,
+    volume,
+    setVolume,
+    audioRef,
+  } = useAudioPlayer();
+
+  const { isFavorite, toggleFavorite } = useFavorites();
+
+  const [progress, setProgress] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
+
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+
+    const updateProgress = () => {
+      if (!isDragging) setProgress(audio.currentTime || 0);
+    };
+
+    const updateDuration = () => {
+      setDuration(audio.duration && !isNaN(audio.duration) ? audio.duration : 0);
+    };
+
+    updateProgress();
+    updateDuration();
+
+    audio.addEventListener('timeupdate', updateProgress);
+    audio.addEventListener('loadedmetadata', updateDuration);
+    audio.addEventListener('durationchange', updateDuration);
+
+    return () => {
+      audio.removeEventListener('timeupdate', updateProgress);
+      audio.removeEventListener('loadedmetadata', updateDuration);
+      audio.removeEventListener('durationchange', updateDuration);
+    };
+  }, [audioRef, isDragging, currentTrack]);
+
+  const handleSeek = (e) => {
+    const audio = audioRef.current;
+    if (!audio || !duration) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = (e.clientX - rect.left) / rect.width;
+    const newTime = x * duration;
+    audio.currentTime = newTime;
+    setProgress(newTime);
+  };
+
+  const formatTime = (time) => {
+    if (!time || isNaN(time)) return '0:00';
+    const minutes = Math.floor(time / 60);
+    const seconds = Math.floor(time % 60);
+    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+  };
+
+  if (!currentTrack) return null;
+
+  const currentIdx = queue.findIndex(
+    (t) => String(t.id) === String(currentTrack.id),
+  );
+  const hasPrev = currentIdx > 0;
+  const hasNext = currentIdx !== -1 && currentIdx + 1 < queue.length;
+
+  const allArtists = [];
+  if (currentTrack.artist && currentTrack.artist.name) {
+    allArtists.push(currentTrack.artist);
+  } else if (typeof currentTrack.artist === 'string') {
+    allArtists.push({
+      id: currentTrack.artist_id,
+      name: currentTrack.artist,
+    });
+  }
+
+  if (Array.isArray(currentTrack.collaborators)) {
+    currentTrack.collaborators.forEach((c) => {
+      if (
+        c &&
+        c.name &&
+        !allArtists.some((a) => String(a.id) === String(c.id))
+      ) {
+        allArtists.push(c);
+      }
+    });
+  }
+
+  const originalTrack = currentTrack.original_track;
+  const isCover = currentTrack.is_cover || Boolean(originalTrack);
+  const isCurrentFav = isFavorite(currentTrack.id);
+
+  const handleFavoriteClick = (e) => {
+    e.stopPropagation();
+    if (currentTrack.id) {
+      toggleFavorite(currentTrack.id);
+    }
+  };
+
+  const handleDownload = (e) => {
+    e.stopPropagation();
+    if (!currentTrack.id) return;
+    const link = document.createElement('a');
+    link.href = `/api/download/${currentTrack.id}`;
+    link.download = `${currentTrack.title || 'track'}.mp3`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  return (
+    <div className="global-player-bar">
+      <div className="player-track-info">
+        <img
+          src={currentTrack.cover || defaultCover}
+          alt="cover"
+          className="player-cover"
+        />
+        <div className="player-track-meta">
+          <div className="player-title-row">
+            {currentTrack.id ? (
+              <Link
+                to="/player"
+                className="player-title player-title-link"
+                title={currentTrack.title}
+              >
+                {currentTrack.title}
+              </Link>
+            ) : (
+              <span className="player-title" title={currentTrack.title}>
+                {currentTrack.title}
+              </span>
+            )}
+
+            {currentTrack.age_restriction && <AgeBadge size="small" />}
+
+            {isCover && (
+              <span
+                className={`player-cover-badge ${originalTrack ? 'global-player-clickable' : ''}`}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (originalTrack) {
+                    playTrack({
+                      ...originalTrack,
+                      cover:
+                        originalTrack.cover ||
+                        currentTrack.cover ||
+                        defaultCover,
+                      artist: originalTrack.artist || {
+                        name: 'Исполнитель',
+                      },
+                    });
+                  }
+                }}
+                title={
+                  originalTrack
+                    ? `Оригинал: ${originalTrack.title} – ${originalTrack.artist?.name || ''} (нажмите для включения)`
+                    : 'Кавер'
+                }
+              >
+                кавер
+              </span>
+            )}
+          </div>
+
+          <div className="player-artists-container">
+            {allArtists.map((art, idx) => (
+              <React.Fragment key={art.id || idx}>
+                {art.id ? (
+                  <Link
+                    to={`/artists/${art.id}`}
+                    className="player-artist player-artist-link"
+                    title={art.name}
+                  >
+                    {art.name}
+                  </Link>
+                ) : (
+                  <span className="player-artist">{art.name}</span>
+                )}
+                {idx < allArtists.length - 1 && <span>, </span>}
+              </React.Fragment>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <div className="player-center">
+        <div className="player-controls">
+          <button
+            type="button"
+            className={`player-btn-secondary player-side-action-btn ${isCurrentFav ? 'global-player-is-fav' : ''}`}
+            onClick={handleFavoriteClick}
+            disabled={!currentTrack.id}
+            title={isCurrentFav ? 'Удалить из избранного' : 'В избранное'}
+          >
+            <img src={favoriteIcon} alt="Избранное" className="player-side-icon player-fav-img" />
+          </button>
+
+          <button
+            type="button"
+            className="player-btn-secondary"
+            onClick={prevTrack}
+            disabled={
+              !hasPrev &&
+              (!audioRef.current || audioRef.current.currentTime === 0)
+            }
+            title="Предыдущий трек"
+          >
+            <img src={prevIcon} alt="Назад" className="player-nav-icon" />
+          </button>
+
+          <button
+            onClick={() => playTrack(currentTrack)}
+            className="player-btn-main"
+            title={isPlaying ? 'Пауза' : 'Слушать'}
+          >
+            <img
+              src={isPlaying ? pauseIcon : playIcon}
+              alt="Play/Pause"
+              className="global-player-player-main-icon"
+            />
+          </button>
+
+          <button
+            type="button"
+            className="player-btn-secondary"
+            onClick={nextTrack}
+            disabled={!hasNext}
+            title="Следующий трек"
+          >
+            <img src={nextIcon} alt="Вперед" className="player-nav-icon" />
+          </button>
+
+          <button
+            type="button"
+            className="player-btn-secondary player-side-action-btn"
+            onClick={handleDownload}
+            disabled={!currentTrack.id}
+            title="Скачать трек"
+          >
+            <img src={downloadIcon} alt="Скачать" className="player-side-icon" />
+          </button>
+        </div>
+
+        <div className="player-progress-container">
+          <span className="player-time">{formatTime(progress)}</span>
+          <div
+            className="player-progress-bar"
+            onMouseDown={() => setIsDragging(true)}
+            onMouseUp={() => setIsDragging(false)}
+            onMouseLeave={() => setIsDragging(false)}
+            onClick={handleSeek}
+          >
+            <div
+              className="player-progress-fill"
+              style={{
+                width: `${duration ? (progress / duration) * 100 : 0}%`,
+              }}
+            />
+            <div
+              className="player-progress-thumb"
+              style={{
+                left: `${duration ? (progress / duration) * 100 : 0}%`,
+              }}
+            />
+          </div>
+          <span className="player-time">{formatTime(duration)}</span>
+        </div>
+      </div>
+
+      <div className="player-right-controls">
+        <img src={volumeIcon} alt="Громкость" className="player-volume-icon" />
+        <input
+          type="range"
+          min="0"
+          max="1"
+          step="0.01"
+          value={volume}
+          onChange={(e) => setVolume(parseFloat(e.target.value))}
+        />
+      </div>
+    </div>
+  );
+}

@@ -1,0 +1,106 @@
+.moderation-page-content-page {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  background: #ffffff;
+  border-radius: 20px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.04);
+  padding: 2.5rem;
+  border: 1px solid #f0eded;
+}
+
+.moderation-page-content {
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.moderation-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.moderation-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  width: 100%;
+}
+
+.moderation-card {
+  display: flex;
+  gap: 1.5rem;
+  padding: 1.25rem;
+  background: #fff;
+  border-radius: 14px;
+  align-items: center;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+  border: 1px solid #f0eded;
+}
+
+.moderation-card-preview {
+  width: 84px;
+  height: 84px;
+  border-radius: 10px;
+  object-fit: cover;
+}
+
+.moderation-card-info {
+  flex: 1;
+}
+
+.moderation-card-type {
+  font-size: 0.8rem;
+  font-weight: bold;
+  color: #1773cf;
+  text-transform: uppercase;
+}
+
+.moderation-card-title {
+  margin: 4px 0;
+}
+
+.moderation-card-artist {
+  margin: 2px 0;
+  color: #14161a;
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.moderation-card-tracks {
+  margin: 2px 0;
+  color: #555;
+  font-size: 0.85rem;
+}
+
+.moderation-card-author {
+  margin: 4px 0;
+  color: #666;
+  font-size: 0.9rem;
+}
+
+.moderation-link {
+  color: #1773cf;
+  text-decoration: none;
+}
+
+.moderation-link-bold {
+  color: #1773cf;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.error-text {
+  color: red;
+}
+
+.moderation-page-status-message {
+  color: #64748b;
+  font-size: 0.95rem;
+}
+
+.moderation-page-empty-catalog-text {
+  color: #888;
+  font-size: 0.95rem;
+  font-style: italic;
+}
