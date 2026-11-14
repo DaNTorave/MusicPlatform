@@ -21,6 +21,23 @@ export default function NotificationsModal({
   const [activeView, setActiveView] = useState('list'); // 'list' | 'detail'
   const [selectedNotification, setSelectedNotification] = useState(null);
 
+  useEffect(() => {
+    if (!isOpen) return;
+
+    loadNotifications();
+    setActiveView('list');
+    setSelectedNotification(null);
+
+    const intervalId = setInterval(loadNotifications, 10000);
+    const handleUpdate = () => loadNotifications();
+
+    window.addEventListener('notifications:update', handleUpdate);
+    return () => {
+      clearInterval(intervalId);
+      window.removeEventListener('notifications:update', handleUpdate);
+    };
+  }, [isOpen]);
+
   // Загрузка уведомлений с сервера
   const loadNotifications = async () => {
     setLoading(true);

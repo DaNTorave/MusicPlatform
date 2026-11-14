@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { apiClient } from '../api/apiClient';
+import { useAudioPlayer } from '../context/AudioContext';
+import { useFavorites } from '../context/FavoritesContext';
 
-import Button from '../components/Button';
+import TrackRow from '../components/TrackRow';
 import ChangeNicknameModal from '../components/ChangeNicknameModal';
 import ChangePasswordModal from '../components/ChangePasswordModal';
 import PlaylistModal from '../components/PlaylistModal';
@@ -18,11 +20,15 @@ export default function ProfilePage() {
   const { id } = useParams();
   const navigate = useNavigate();
 
+  const { playTrack, currentTrack, isPlaying } = useAudioPlayer();
+  const { toggleFavorite } = useFavorites();
+
   const [profile, setProfile] = useState(null);
   const [currentUser, setCurrentUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [avatarLoading, setAvatarLoading] = useState(false);
   const [playlists, setPlaylists] = useState([]);
+  const [favorites, setFavorites] = useState([]);
 
   // Управление модальными окнами
   const [activeModal, setActiveModal] = useState(null);
@@ -46,7 +52,7 @@ export default function ProfilePage() {
     });
   };
 
-  // Загрузка данных профиля и плейлистов
+  // Загрузка данных профиля, избранного и плейлистов
   const fetchProfileData = async () => {
     setLoading(true);
     try {
@@ -59,24 +65,38 @@ export default function ProfilePage() {
         return;
       }
 
-      // Если открыт собственный профиль, берем данные через /api/profile с токеном
-      const profileEndpoint = !id || (authUser && String(authUser.id) === String(id))
+      const ownProfile = !id || (authUser && String(authUser.id) === String(id));
+      const profileEndpoint = ownProfile
         ? '/api/profile'
         : `/api/profile/${targetId}`;
 
-      const res = await apiClient.request(profileEndpoint, {
-        method: 'GET',
-        requireAuth: true,
-      });
+      const requests = [
+        apiClient.request(profileEndpoint, {
+          method: 'GET',
+          requireAuth: true,
+        }),
+        apiClient.getUserPlaylists(targetId),
+      ];
+
+      if (ownProfile && authUser) {
+        requests.push(apiClient.getFavorites(12));
+      }
+
+      const [res, playlistsRes, favoritesRes] = await Promise.all(requests);
 
       const profileData = res?.user || res?.profile;
       if (profileData) {
         setProfile(profileData);
       }
 
-      const playlistsRes = await apiClient.getUserPlaylists(targetId);
       if (playlistsRes?.data) {
         setPlaylists(playlistsRes.data);
+      }
+
+      if (ownProfile && favoritesRes?.data) {
+        setFavorites(favoritesRes.data);
+      } else {
+        setFavorites([]);
       }
     } catch (err) {
       console.error('Ошибка загрузки профиля:', err);
@@ -88,6 +108,12 @@ export default function ProfilePage() {
   useEffect(() => {
     fetchProfileData();
   }, [id]);
+
+  // Синхронизация списка избранного при снятии отметки
+  const handleToggleFavorite = async (trackId) => {
+    await toggleFavorite(trackId);
+    setFavorites((prev) => prev.filter((t) => String(t.id) !== String(trackId)));
+  };
 
   // Обработка выбора файла аватара с открытием кадрирования
   const handleAvatarFileSelect = (e) => {
@@ -195,130 +221,182 @@ export default function ProfilePage() {
       />
 
       <div className="profile-page">
-        <div className="profile-container">
-          <div className="profile-header">
-            <div className="profile-avatar">
-              <img
-                src={avatarSrc}
-                alt="Avatar"
-              />
-              {isOwnProfile && (
-                <label className="profile-avatar-edit-badge" title="Сменить аватар">
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept="image/*"
-                    className="profile-avatar-file-input"
-                    onChange={handleAvatarFileSelect}
-                    disabled={avatarLoading}
-                  />
-                  {avatarLoading ? '...' : 'Фото'}
-                </label>
-              )}
-            </div>
-
-            <div className="profile-info">
-              <h1>{profile.nickname || profile.login}</h1>
-              <div className="profile-login">@{profile.login}</div>
-
-              <div className="profile-badge">
-                <span className={`profile-page-role-badge ${roleClass}`}>
-                  {profile.role || 'member'}
-                </span>
-                {profile.is_premium && (
-                  <span className="premium-badge">PREMIUM</span>
+        <div className="profile-layout">
+          {/* Левая колонка: информация о пользователе и настройки */}
+          <aside className="profile-sidebar">
+            <div className="profile-header">
+              <div className="profile-avatar">
+                <img
+                  src={avatarSrc}
+                  alt="Avatar"
+                />
+                {isOwnProfile && (
+                  <label className="profile-avatar-edit-badge" title="Сменить аватар">
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*"
+                      className="profile-avatar-file-input"
+                      onChange={handleAvatarFileSelect}
+                      disabled={avatarLoading}
+                    />
+                    {avatarLoading ? '...' : 'Фото'}
+                  </label>
                 )}
               </div>
-            </div>
-          </div>
 
-          <div className="profile-details">
-            {isOwnProfile && profile.email && (
-              <div className="detail-item">
-                <span className="detail-label">Электронная почта</span>
-                <span className="detail-value">{profile.email}</span>
+              <div className="profile-info">
+                <h1>{profile.nickname || profile.login}</h1>
+                <div className="profile-login">@{profile.login}</div>
+
+                <div className="profile-badge">
+                  <span className={`profile-page-role-badge ${roleClass}`}>
+                    {profile.role || 'member'}
+                  </span>
+                  {profile.is_premium && (
+                    <span className="premium-badge">PREMIUM</span>
+                  )}
+                </div>
               </div>
-            )}
-            <div className="detail-item">
-              <span className="detail-label">Дата регистрации</span>
-              <span className="detail-value">
-                {formatRegistrationDate(profile.inserted_at)}
-              </span>
             </div>
-          </div>
 
-          {isOwnProfile && (
-            <div className="profile-actions">
-              <button
-                type="button"
-                className="profile-action-btn"
-                onClick={() => setActiveModal('nickname')}
-              >
-                Сменить никнейм
-              </button>
-              <button
-                type="button"
-                className="profile-action-btn"
-                onClick={() => setActiveModal('password')}
-              >
-                Сменить пароль
-              </button>
-              <button
-                type="button"
-                className="profile-action-btn"
-                onClick={() => setActiveModal('preferences')}
-              >
-                Настроить предпочтения
-              </button>
-            </div>
-          )}
-
-          <div className="profile-favorites-section">
-            <div className="profile-favorites-header">
-              <div>
-                <h2 className="profile-favorites-title">
-                  Публичные плейлисты
-                </h2>
-                <span className="profile-favorites-subtitle">
-                  {playlists.length} доступно для прослушивания
+            <div className="profile-details">
+              {isOwnProfile && profile.email && (
+                <div className="detail-item">
+                  <span className="detail-label">Электронная почта</span>
+                  <span className="detail-value">{profile.email}</span>
+                </div>
+              )}
+              <div className="detail-item">
+                <span className="detail-label">Дата регистрации</span>
+                <span className="detail-value">
+                  {formatRegistrationDate(profile.inserted_at)}
                 </span>
               </div>
-              {isOwnProfile && (
-                <button
-                  type="button"
-                  className="profile-show-all-btn"
-                  onClick={() => setActiveModal('create_playlist')}
-                >
-                  + Создать плейлист
-                </button>
-              )}
             </div>
 
-            {playlists.length === 0 ? (
-              <p className="profile-page-empty-text">Нет доступных плейлистов</p>
-            ) : (
-              <div className="playlists-grid">
-                {playlists.map((pl) => (
-                  <div
-                    key={pl.id}
-                    className="playlist-card"
-                    onClick={() => navigate(`/playlists/${pl.id}`)}
-                  >
-                    <img
-                      src={pl.cover || defaultAvatar}
-                      alt={pl.title}
-                      className="playlist-card-cover"
-                    />
-                    <div className="playlist-card-info">
-                      <h3 className="playlist-card-title">{pl.title}</h3>
-                      <span className="playlist-card-count">
-                        {pl.tracks_count || 0} треков
-                      </span>
-                    </div>
-                  </div>
-                ))}
+            {isOwnProfile && (
+              <div className="profile-actions">
+                <button
+                  type="button"
+                  className="profile-action-btn"
+                  onClick={() => setActiveModal('nickname')}
+                >
+                  Сменить никнейм
+                </button>
+                <button
+                  type="button"
+                  className="profile-action-btn"
+                  onClick={() => setActiveModal('password')}
+                >
+                  Сменить пароль
+                </button>
+                <button
+                  type="button"
+                  className="profile-action-btn"
+                  onClick={() => setActiveModal('preferences')}
+                >
+                  Настроить предпочтения
+                </button>
               </div>
             )}
+          </aside>
+
+          {/* Правая колонка: избранное и плейлисты */}
+          <div className="profile-content">
+            {isOwnProfile && (
+              <div className="profile-favorites-section profile-section-first">
+                <div className="profile-favorites-header">
+                  <div>
+                    <h2 className="profile-favorites-title">Избранное</h2>
+                    <span className="profile-favorites-subtitle">
+                      Последние добавленные треки
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    className="profile-show-all-btn"
+                    onClick={() => navigate('/favorites')}
+                  >
+                    Смотреть все
+                  </button>
+                </div>
+
+                {favorites.length === 0 ? (
+                  <p className="profile-page-empty-text">
+                    В избранном пока нет треков
+                  </p>
+                ) : (
+                  <div className="profile-favorites-list">
+                    {favorites.map((track, idx) => (
+                      <TrackRow
+                        key={track.id}
+                        index={idx}
+                        track={track}
+                        isPlaying={
+                          currentTrack &&
+                          String(currentTrack.id) === String(track.id) &&
+                          isPlaying
+                        }
+                        onPlay={() => playTrack(track, favorites)}
+                        isFavorite={true}
+                        onToggleFavorite={handleToggleFavorite}
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            <div
+              className={`profile-favorites-section ${!isOwnProfile ? 'profile-section-first' : ''}`}
+            >
+              <div className="profile-favorites-header">
+                <div>
+                  <h2 className="profile-favorites-title">
+                    Публичные плейлисты
+                  </h2>
+                  <span className="profile-favorites-subtitle">
+                    {playlists.length} доступно для прослушивания
+                  </span>
+                </div>
+                {isOwnProfile && (
+                  <button
+                    type="button"
+                    className="profile-show-all-btn"
+                    onClick={() => setActiveModal('create_playlist')}
+                  >
+                    + Создать плейлист
+                  </button>
+                )}
+              </div>
+
+              {playlists.length === 0 ? (
+                <p className="profile-page-empty-text">Нет доступных плейлистов</p>
+              ) : (
+                <div className="playlists-grid">
+                  {playlists.map((pl) => (
+                    <div
+                      key={pl.id}
+                      className="playlist-card"
+                      onClick={() => navigate(`/playlists/${pl.id}`)}
+                    >
+                      <img
+                        src={pl.cover || defaultAvatar}
+                        alt={pl.title}
+                        className="playlist-card-cover"
+                      />
+                      <div className="playlist-card-info">
+                        <h3 className="playlist-card-title">{pl.title}</h3>
+                        <span className="playlist-card-count">
+                          {pl.tracks_count || 0} треков
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>

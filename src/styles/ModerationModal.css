@@ -396,7 +396,7 @@
 
 .moderation-modal-genre-selected-count {
   font-size: 0.8rem;
-  color: #2563eb;
+  color: #1773cf;
   font-weight: 600;
 }
 
@@ -542,9 +542,9 @@
 }
 
 .moderation-modal-genre-chip-btn.moderation-modal-active {
-  background: #2563eb;
+  background: #1773cf;
   color: #ffffff;
-  border-color: #2563eb;
+  border-color: #1773cf;
 }
 
 .moderation-modal-input-element {

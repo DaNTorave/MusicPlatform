@@ -143,7 +143,7 @@
 
 .create-artist-modal-genre-selected-count {
   font-size: 0.8rem;
-  color: #2563eb;
+  color: #1773cf;
   font-weight: 600;
 }
 
@@ -208,9 +208,9 @@
 }
 
 .create-artist-modal-genre-chip-btn.create-artist-modal-active {
-  background: #2563eb;
+  background: #1773cf;
   color: #ffffff;
-  border-color: #2563eb;
+  border-color: #1773cf;
 }
 
 .create-artist-modal-input-element {

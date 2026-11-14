@@ -41,19 +41,26 @@ export default function GlobalPlayer() {
     if (!audio) return;
 
     const updateProgress = () => {
-      if (!isDragging) setProgress(audio.currentTime);
+      if (!isDragging) setProgress(audio.currentTime || 0);
     };
 
-    const updateDuration = () => setDuration(audio.duration || 0);
+    const updateDuration = () => {
+      setDuration(audio.duration && !isNaN(audio.duration) ? audio.duration : 0);
+    };
+
+    updateProgress();
+    updateDuration();
 
     audio.addEventListener('timeupdate', updateProgress);
     audio.addEventListener('loadedmetadata', updateDuration);
+    audio.addEventListener('durationchange', updateDuration);
 
     return () => {
       audio.removeEventListener('timeupdate', updateProgress);
       audio.removeEventListener('loadedmetadata', updateDuration);
+      audio.removeEventListener('durationchange', updateDuration);
     };
-  }, [audioRef, isDragging]);
+  }, [audioRef, isDragging, currentTrack]);
 
   const handleSeek = (e) => {
     const audio = audioRef.current;

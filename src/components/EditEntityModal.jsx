@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { apiClient } from '../api/apiClient';
 
 import Button from './Button';
@@ -11,7 +11,6 @@ import closeIcon from '../assets/close-icon.svg';
 
 import '../styles/EditEntityModal.css';
 
-
 export default function EditEntityModal({
   isOpen,
   onClose,
@@ -20,7 +19,9 @@ export default function EditEntityModal({
   onSuccess,
 }) {
   const [title, setTitle] = useState('');
-  const [genre, setGenre] = useState('');
+  const [availableGenres, setAvailableGenres] = useState([]);
+  const [selectedGenres, setSelectedGenres] = useState([]);
+  const [genreSearch, setGenreSearch] = useState('');
   const [coverFile, setCoverFile] = useState(null);
   const [coverPreview, setCoverPreview] = useState('');
   const [audioFile, setAudioFile] = useState(null);
@@ -34,10 +35,21 @@ export default function EditEntityModal({
   const [rawImageSrc, setRawImageSrc] = useState('');
   const fileInputRef = useRef(null);
 
+  // Загрузка справочника жанров при открытии модального окна для исполнителя
+  useEffect(() => {
+    if (!isOpen || type !== 'artist') return;
+    apiClient
+      .getGenres()
+      .then((res) => {
+        if (res?.data) setAvailableGenres(res.data);
+      })
+      .catch(() => {});
+  }, [isOpen, type]);
+
   useEffect(() => {
     if (item) {
       setTitle(item.title || item.name || '');
-      setGenre(item.genre || '');
+      setGenreSearch('');
       setCoverPreview(item.cover || item.avatar || '');
       setCoverFile(null);
       setAudioFile(null);
@@ -45,6 +57,18 @@ export default function EditEntityModal({
       setAgeRestriction(
         Boolean(item.age_restriction || item.has_age_restriction)
       );
+
+      if (type === 'artist') {
+        const rawList =
+          Array.isArray(item.genres) && item.genres.length > 0
+            ? item.genres
+            : item.genre
+              ? item.genre.split(',').map((s) => s.trim()).filter(Boolean)
+              : [];
+        setSelectedGenres(rawList);
+      } else {
+        setSelectedGenres([]);
+      }
 
       if (type === 'album') {
         setTracks(
@@ -61,7 +85,27 @@ export default function EditEntityModal({
     }
   }, [item, type]);
 
+  // Фильтрация жанров по поисковому запросу
+  const filteredGenres = useMemo(() => {
+    const q = genreSearch.trim().toLowerCase();
+    if (!q) return availableGenres;
+    return availableGenres.filter(
+      (g) =>
+        (g.title_ru && g.title_ru.toLowerCase().includes(q)) ||
+        (g.key && g.key.toLowerCase().includes(q))
+    );
+  }, [availableGenres, genreSearch]);
+
   if (!isOpen || !item) return null;
+
+  // Переключение выбора жанра из кластера
+  const handleToggleGenre = (genreKey) => {
+    setSelectedGenres((prev) =>
+      prev.includes(genreKey)
+        ? prev.filter((k) => k !== genreKey)
+        : [...prev, genreKey]
+    );
+  };
 
   // Обработчик выбора файла обложки
   const handleCoverSelect = (e) => {
@@ -113,8 +157,14 @@ export default function EditEntityModal({
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setLoading(true);
     setErrorMsg('');
+
+    if (type === 'artist' && selectedGenres.length === 0) {
+      setErrorMsg('Выберите хотя бы один жанр из кластера');
+      return;
+    }
+
+    setLoading(true);
 
     try {
       const formData = new FormData();
@@ -122,8 +172,9 @@ export default function EditEntityModal({
       formData.append('id', item.id);
       formData.append('title', title.trim());
 
-      if (type === 'artist' && genre) {
-        formData.append('genre', genre.trim());
+      if (type === 'artist') {
+        formData.append('genre', selectedGenres.join(', '));
+        selectedGenres.forEach((g) => formData.append('genres[]', g));
       }
       if (coverFile) {
         formData.append('cover', coverFile);
@@ -177,6 +228,11 @@ export default function EditEntityModal({
         return 'Редактирование';
     }
   };
+
+  const isSaveDisabled =
+    loading ||
+    !title.trim() ||
+    (type === 'artist' && selectedGenres.length === 0);
 
   return (
     <>
@@ -246,13 +302,48 @@ export default function EditEntityModal({
 
               {type === 'artist' && (
                 <div className="edit-entity-modal-auth-form-group">
-                  <label>Основной жанр</label>
+                  <div className="edit-entity-modal-genre-header-row">
+                    <label className="edit-entity-modal-genre-header-label">
+                      Жанры исполнителя *
+                    </label>
+                    {selectedGenres.length > 0 && (
+                      <span className="edit-entity-modal-genre-selected-count">
+                        Выбрано: {selectedGenres.length}
+                      </span>
+                    )}
+                  </div>
+
                   <input
                     type="text"
-                    value={genre}
-                    onChange={(e) => setGenre(e.target.value)}
+                    className="edit-entity-modal-input-element edit-entity-modal-genre-search-input"
+                    placeholder="Поиск жанра по названию..."
+                    value={genreSearch}
+                    onChange={(e) => setGenreSearch(e.target.value)}
                     disabled={loading}
                   />
+
+                  <div className="edit-entity-modal-genres-selector-list">
+                    {filteredGenres.length === 0 ? (
+                      <div className="edit-entity-modal-genre-empty-hint">
+                        Жанр не найден
+                      </div>
+                    ) : (
+                      filteredGenres.map((g) => {
+                        const isSelected = selectedGenres.includes(g.key);
+                        return (
+                          <button
+                            key={g.key}
+                            type="button"
+                            className={`edit-entity-modal-genre-chip-btn ${isSelected ? 'edit-entity-modal-active' : ''}`}
+                            onClick={() => handleToggleGenre(g.key)}
+                            disabled={loading}
+                          >
+                            {g.title_ru}
+                          </button>
+                        );
+                      })
+                    )}
+                  </div>
                 </div>
               )}
 
@@ -318,7 +409,7 @@ export default function EditEntityModal({
                 <Button
                   type="submit"
                   variant="primary"
-                  disabled={loading || !title.trim()}
+                  disabled={isSaveDisabled}
                 >
                   {loading ? 'Сохранение...' : 'Сохранить'}
                 </Button>

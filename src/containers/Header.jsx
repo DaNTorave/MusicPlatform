@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { apiClient } from '../api/apiClient';
 
 import Button from '../components/Button';
@@ -26,22 +26,28 @@ export default function Header() {
 
   const dropdownRef = useRef(null);
   const navigate = useNavigate();
+  const location = useLocation();
 
   // Загрузка количества непрочитанных уведомлений
-  const loadUnreadCount = async () => {
+  const loadUnreadCount = useCallback(async () => {
+    if (!apiClient.getToken()) {
+      setUnreadCount(0);
+      return;
+    }
+
     try {
       const res = await apiClient.request('/api/notifications', {
         method: 'GET',
         requireAuth: true,
       });
-      if (res?.notifications) {
+      if (Array.isArray(res?.notifications)) {
         const count = res.notifications.filter((n) => !n.is_read).length;
         setUnreadCount(count);
       }
     } catch (e) {
-      setUnreadCount(0);
+      console.log('Выстрелила сетевая временная ошибка')
     }
-  };
+  }, []);
 
   // Загрузка пользователя и подписка на события авторизации и уведомлений
   useEffect(() => {
@@ -62,18 +68,28 @@ export default function Header() {
       loadUnreadCount();
     };
 
-    window.addEventListener('auth:unauthorized', handleAuthChange);
-    window.addEventListener('auth:login', handleAuthChange);
-    window.addEventListener('user:updated', handleAuthChange);
-    window.addEventListener('notifications:update', handleNotificationsChange);
-    window.addEventListener('storage', (e) => {
+    const handleStorageChange = (e) => {
       if (e.key === 'user' || e.key === 'authToken') {
         handleAuthChange();
       }
       if (e.key === 'user_notifications') {
         handleNotificationsChange();
       }
-    });
+    };
+
+    const handleVisibilityOrFocus = () => {
+      if (document.visibilityState === 'visible' && apiClient.getToken()) {
+        loadUnreadCount();
+      }
+    };
+
+    window.addEventListener('auth:unauthorized', handleAuthChange);
+    window.addEventListener('auth:login', handleAuthChange);
+    window.addEventListener('user:updated', handleAuthChange);
+    window.addEventListener('notifications:update', handleNotificationsChange);
+    window.addEventListener('storage', handleStorageChange);
+    window.addEventListener('focus', handleVisibilityOrFocus);
+    document.addEventListener('visibilitychange', handleVisibilityOrFocus);
 
     // Закрытие выпадающего меню при клике вне области
     const handleClickOutside = (event) => {
@@ -92,9 +108,32 @@ export default function Header() {
         'notifications:update',
         handleNotificationsChange,
       );
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('focus', handleVisibilityOrFocus);
+      document.removeEventListener('visibilitychange', handleVisibilityOrFocus);
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, []);
+  }, [loadUnreadCount]);
+
+  // Периодический опрос новых уведомлений для авторизованного пользователя
+  useEffect(() => {
+    if (!user) return;
+
+    const intervalId = setInterval(() => {
+      if (document.visibilityState === 'visible') {
+        loadUnreadCount();
+      }
+    }, 8000);
+
+    return () => clearInterval(intervalId);
+  }, [user, loadUnreadCount]);
+
+  // Обновление счетчика при переходах по страницам
+  useEffect(() => {
+    if (user) {
+      loadUnreadCount();
+    }
+  }, [location.pathname, user, loadUnreadCount]);
 
   // Показ всплывающего уведомления поверх модального окна на 8 секунд
   const showNotification = (msg) => {
@@ -133,7 +172,11 @@ export default function Header() {
   // Клик по кнопке пользователя в шапке
   const handleUserClick = () => {
     if (user) {
-      setIsDropdownOpen(!isDropdownOpen);
+      const nextOpen = !isDropdownOpen;
+      setIsDropdownOpen(nextOpen);
+      if (nextOpen) {
+        loadUnreadCount();
+      }
     } else {
       setAuthTab('login');
       setActiveModal('auth');
@@ -218,7 +261,10 @@ export default function Header() {
       {/* Модальное окно уведомлений */}
       <NotificationsModal
         isOpen={activeModal === 'notifications'}
-        onClose={() => setActiveModal(null)}
+        onClose={() => {
+          setActiveModal(null);
+          loadUnreadCount();
+        }}
         onOpenUpload={() => {
           setUploadTab('single');
           setActiveModal('upload');

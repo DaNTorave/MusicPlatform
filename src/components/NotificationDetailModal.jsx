@@ -116,9 +116,6 @@ export function NotificationDetailContent({
           <p className="notification-approval-desc">
             {notification.message}
           </p>
-          <p className="notification-approval-note">
-            Ваш релиз прошел проверку соответствия правилам площадки и теперь доступен всем слушателям платформы.
-          </p>
         </div>
       )}
 
