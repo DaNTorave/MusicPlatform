@@ -34,7 +34,16 @@ export default function Content() {
   const searchContainerRef = useRef(null);
 
   const navigate = useNavigate();
-  const { playTrack, currentTrack, isPlaying } = useAudioPlayer();
+
+  const { 
+    playTrack,
+    startLiveRadio,
+    stopLiveRadio,
+    isRadioMode,
+    currentTrack,
+    isPlaying
+  } = useAudioPlayer();
+
   const currentUser = apiClient.getUser();
   const isStaff =
     currentUser &&
@@ -323,8 +332,8 @@ export default function Content() {
         </div>
 
         <div className="content-container">
-          <div className="content-actions-panel">
-            {currentUser && (
+          {currentUser && (
+            <div className="content-actions-panel">
               <>
                 <Button
                   variant="primary"
@@ -332,7 +341,12 @@ export default function Content() {
                 >
                   Добавить исполнителя
                 </Button>
-                <Button variant="secondary">Алгоритмы</Button>
+                <Button
+                  variant={isRadioMode ? 'primary' : 'secondary'}
+                  onClick={() => (isRadioMode ? stopLiveRadio() : startLiveRadio())}
+                >
+                  {isRadioMode ? 'Остановить эфир' : 'Мой эфир'}
+                </Button>
                 <Button
                   variant="secondary"
                   onClick={() => navigate('/favorites')}
@@ -347,8 +361,8 @@ export default function Content() {
                 </Button>
                 <div className="content-actions-panel-block" />
               </>
-            )}
-          </div>
+            </div>
+          )}
 
           <div className="artists-catalog-section">
             <div>

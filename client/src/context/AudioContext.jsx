@@ -3,235 +3,343 @@ import React, {
   useContext,
   useState,
   useEffect,
-  useRef
-} from 'react'
+  useRef,
+} from 'react';
+import { radioSocket } from '../api/radioSocket';
 
-const AudioContext = createContext(null)
+const AudioContext = createContext(null);
 
 export const AudioProvider = ({ children }) => {
-  // Текущий трек с восстановлением из localStorage
   const [currentTrack, setCurrentTrack] = useState(() => {
     try {
-      const saved = localStorage.getItem('player_track')
-      return saved ? JSON.parse(saved) : null
+      const saved = localStorage.getItem('player_track');
+      return saved ? JSON.parse(saved) : null;
     } catch {
-      return null
+      return null;
     }
-  })
+  });
 
-  // Очередь воспроизведения
   const [queue, setQueue] = useState(() => {
     try {
-      const saved = localStorage.getItem('player_queue')
-      return saved ? JSON.parse(saved) : []
+      const saved = localStorage.getItem('player_queue');
+      return saved ? JSON.parse(saved) : [];
     } catch {
-      return []
+      return [];
     }
-  })
+  });
 
-  // Состояние воспроизведения и громкости
-  const [isPlaying, setIsPlaying] = useState(false)
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [isRadioMode, setIsRadioMode] = useState(false);
+  const [radioGenre, setRadioGenre] = useState(null);
   const [volume, setVolume] = useState(() => {
-    return parseFloat(localStorage.getItem('player_volume') || '0.8')
-  })
+    return parseFloat(localStorage.getItem('player_volume') || '0.8');
+  });
 
-  const audioRef = useRef(new Audio())
-  const currentSrcRef = useRef('')
+  const audioRef = useRef(new Audio());
+  const currentSrcRef = useRef('');
+  const queueRef = useRef(queue);
+  queueRef.current = queue;
 
-  const queueRef = useRef(queue)
-  queueRef.current = queue
+  const currentTrackRef = useRef(currentTrack);
+  currentTrackRef.current = currentTrack;
 
-  const currentTrackRef = useRef(currentTrack)
-  currentTrackRef.current = currentTrack
+  const isRadioModeRef = useRef(isRadioMode);
+  isRadioModeRef.current = isRadioMode;
 
-  // Инициализация аудио и подписка на события
+  const completedReportedRef = useRef(false);
+
+  // Подписка на перестройку очереди сервером при скипе или дизлайке
   useEffect(() => {
-    const audio = audioRef.current
-    audio.volume = volume
+    radioSocket.onQueueReplaced = (newTracks) => {
+      if (!isRadioModeRef.current || !Array.isArray(newTracks) || newTracks.length === 0) return;
 
-    const onPlay = () => setIsPlaying(true)
-    const onPause = () => setIsPlaying(false)
-    const onError = e => {
-      console.error('Audio playback error:', e)
-      setIsPlaying(false)
-    }
+      const activeTrack = currentTrackRef.current;
+      const updatedQueue = activeTrack ? [activeTrack, ...newTracks] : newTracks;
+      setQueue(updatedQueue);
+      queueRef.current = updatedQueue;
+    };
 
-    audio.addEventListener('play', onPlay)
-    audio.addEventListener('pause', onPause)
-    audio.addEventListener('error', onError)
+    return () => {
+      radioSocket.onQueueReplaced = null;
+    };
+  }, []);
 
-    setIsPlaying(false)
+  // Инициализация аудио и отслеживание дослушивания (80%)
+  useEffect(() => {
+    const audio = audioRef.current;
+    audio.volume = volume;
+
+    const onPlay = () => setIsPlaying(true);
+    const onPause = () => setIsPlaying(false);
+    const onError = (e) => {
+      console.error('Audio playback error:', e);
+      setIsPlaying(false);
+    };
+
+    const onTimeUpdate = () => {
+      const track = currentTrackRef.current;
+      if (!track || completedReportedRef.current) return;
+
+      if (audio.duration > 0 && audio.currentTime / audio.duration >= 0.8) {
+        completedReportedRef.current = true;
+        radioSocket.sendFeedback(track.id, 'complete', audio.currentTime * 1000);
+      }
+    };
+
+    audio.addEventListener('play', onPlay);
+    audio.addEventListener('pause', onPause);
+    audio.addEventListener('error', onError);
+    audio.addEventListener('timeupdate', onTimeUpdate);
+
+    setIsPlaying(false);
 
     if (currentTrack?.id) {
-      const targetSrc =
-        currentTrack.streamUrl || `/api/stream/${currentTrack.id}`
-      currentSrcRef.current = targetSrc
-      audio.src = targetSrc
+      const targetSrc = currentTrack.streamUrl || `/api/stream/${currentTrack.id}`;
+      currentSrcRef.current = targetSrc;
+      audio.src = targetSrc;
     }
 
     return () => {
-      audio.removeEventListener('play', onPlay)
-      audio.removeEventListener('pause', onPause)
-      audio.removeEventListener('error', onError)
-    }
-  }, [])
+      audio.removeEventListener('play', onPlay);
+      audio.removeEventListener('pause', onPause);
+      audio.removeEventListener('error', onError);
+      audio.removeEventListener('timeupdate', onTimeUpdate);
+    };
+  }, []);
 
-  // Обновление громкости
   useEffect(() => {
-    audioRef.current.volume = volume
-    localStorage.setItem('player_volume', volume.toString())
-  }, [volume])
+    audioRef.current.volume = volume;
+    localStorage.setItem('player_volume', volume.toString());
+  }, [volume]);
 
-  // Переход к следующему треку
-  const nextTrack = () => {
-    const currentQ = queueRef.current
-    const currentT = currentTrackRef.current
-    if (!currentQ || currentQ.length === 0 || !currentT) return
+  // Запуск режима прямого эфира
+  const startLiveRadio = async (genre = null) => {
+    try {
+      const tracks = await radioSocket.startRadio(genre);
+      if (tracks.length === 0) {
+        alert('В каталоге пока недостаточно одобренных треков для запуска эфира.');
+        return;
+      }
 
-    const currentIndex = currentQ.findIndex(
-      t => String(t.id) === String(currentT.id)
-    )
+      setIsRadioMode(true);
+      isRadioModeRef.current = true;
+      setRadioGenre(genre);
+
+      playInternalTrack(tracks[0], tracks);
+    } catch (err) {
+      console.error('Ошибка запуска эфира:', err);
+      alert('Для запуска персонального эфира необходимо войти в аккаунт.');
+    }
+  };
+
+  // Остановка режима эфира (возврат к обычному плееру)
+  const stopLiveRadio = () => {
+    setIsRadioMode(false);
+    isRadioModeRef.current = false;
+    setRadioGenre(null);
+    radioSocket.disconnect();
+  };
+
+  // Переход к следующему треку с отправкой сигнала раннего пропуска
+  const nextTrack = async () => {
+    const currentQ = queueRef.current;
+    const currentT = currentTrackRef.current;
+    const audio = audioRef.current;
+
+    if (!currentT) return;
+
+    // Фиксация раннего пропуска (до 30 секунд), если трек еще не дослушан
+    if (audio && !completedReportedRef.current && audio.currentTime > 0 && audio.currentTime < 30) {
+      radioSocket.sendFeedback(currentT.id, 'skip_early', audio.currentTime * 1000);
+    }
+
+    const currentIndex = currentQ.findIndex((t) => String(t.id) === String(currentT.id));
+
     if (currentIndex !== -1 && currentIndex + 1 < currentQ.length) {
-      const nextT = currentQ[currentIndex + 1]
-      playTrack(nextT, currentQ)
-    }
-  }
+      const nextT = currentQ[currentIndex + 1];
+      playInternalTrack(nextT, currentQ);
 
-  // Переход к предыдущему треку
-  const prevTrack = () => {
-    const currentQ = queueRef.current
-    const currentT = currentTrackRef.current
-    if (!currentQ || currentQ.length === 0 || !currentT) return
-
-    const currentIndex = currentQ.findIndex(
-      t => String(t.id) === String(currentT.id)
-    )
-    if (currentIndex > 0) {
-      const prevT = currentQ[currentIndex - 1]
-      playTrack(prevT, currentQ)
-    } else {
-      if (audioRef.current) {
-        audioRef.current.currentTime = 0
+      // Если в режиме радио осталось меньше 2 треков впереди, подгружаем новую пачку
+      if (isRadioModeRef.current && currentQ.length - (currentIndex + 1) <= 2) {
+        try {
+          const moreTracks = await radioSocket.requestMore();
+          if (moreTracks.length > 0) {
+            const merged = [...queueRef.current.slice(-5), ...moreTracks];
+            setQueue(merged);
+            queueRef.current = merged;
+          }
+        } catch (e) {
+          console.warn('Не удалось подгрузить продолжение эфира:', e);
+        }
       }
-    }
-  }
-
-  // Обработка окончания трека
-  useEffect(() => {
-    const audio = audioRef.current
-    const handleEnded = () => {
-      nextTrack()
-    }
-
-    audio.addEventListener('ended', handleEnded)
-    return () => {
-      audio.removeEventListener('ended', handleEnded)
-    }
-  }, [])
-
-  // Воспроизведение трека
-  const playTrack = (track, newQueue = null) => {
-    if (!track || !track.id) return
-    const audio = audioRef.current
-
-    // Обновление очереди при необходимости
-    if (newQueue && Array.isArray(newQueue)) {
-      setQueue(newQueue)
-      queueRef.current = newQueue
+    } else if (isRadioModeRef.current) {
       try {
-        localStorage.setItem('player_queue', JSON.stringify(newQueue))
+        const moreTracks = await radioSocket.requestMore();
+        if (moreTracks.length > 0) {
+          playInternalTrack(moreTracks[0], moreTracks);
+        }
       } catch (e) {
-        console.warn('Queue storage error:', e)
+        console.warn('Ошибка получения следующего трека эфира:', e);
+      }
+    }
+  };
+
+  // Дизлайк текущего трека в эфире
+  const dislikeCurrentTrack = async () => {
+    const currentT = currentTrackRef.current;
+    const audio = audioRef.current;
+    if (!currentT) return;
+
+    completedReportedRef.current = true;
+    radioSocket.sendFeedback(currentT.id, 'dislike', (audio?.currentTime || 0) * 1000);
+
+    if (isRadioModeRef.current) {
+      try {
+        const moreTracks = await radioSocket.requestMore();
+        if (moreTracks.length > 0) {
+          playInternalTrack(moreTracks[0], moreTracks);
+          return;
+        }
+      } catch (e) {
+        console.warn('Ошибка обновления эфира после дизлайка:', e);
       }
     }
 
-    const targetSrc = track.streamUrl || `/api/stream/${track.id}`
-    const isSameTrack =
-      currentTrack && String(currentTrack.id) === String(track.id)
+    nextTrack();
+  };
 
-    // Переключение паузы для текущего трека
-    if (isSameTrack && !track.streamUrl) {
-      if (!audio.src || currentSrcRef.current !== targetSrc) {
-        audio.src = targetSrc
-        currentSrcRef.current = targetSrc
-      }
+  const prevTrack = () => {
+    const currentQ = queueRef.current;
+    const currentT = currentTrackRef.current;
+    if (!currentQ || currentQ.length === 0 || !currentT) return;
 
-      if (!audio.paused && isPlaying) {
-        audio.pause()
-      } else {
-        audio.play().catch(err => {
-          console.warn('Play was prevented:', err)
-          setIsPlaying(false)
-        })
+    const currentIndex = currentQ.findIndex((t) => String(t.id) === String(currentT.id));
+    if (currentIndex > 0) {
+      const prevT = currentQ[currentIndex - 1];
+      playInternalTrack(prevT, currentQ);
+    } else if (audioRef.current) {
+      audioRef.current.currentTime = 0;
+    }
+  };
+
+  useEffect(() => {
+    const audio = audioRef.current;
+    const handleEnded = () => {
+      nextTrack();
+    };
+
+    audio.addEventListener('ended', handleEnded);
+    return () => {
+      audio.removeEventListener('ended', handleEnded);
+    };
+  }, []);
+
+  const playInternalTrack = (track, newQueue = null) => {
+    if (!track || !track.id) return;
+    const audio = audioRef.current;
+    completedReportedRef.current = false;
+
+    if (newQueue && Array.isArray(newQueue)) {
+      setQueue(newQueue);
+      queueRef.current = newQueue;
+      try {
+        localStorage.setItem('player_queue', JSON.stringify(newQueue));
+      } catch (e) {
+        console.warn('Queue storage error:', e);
       }
-      return
     }
 
-    // Установка нового трека
-    setCurrentTrack(track)
-    currentTrackRef.current = track
+    const targetSrc = track.streamUrl || `/api/stream/${track.id}`;
+    setCurrentTrack(track);
+    currentTrackRef.current = track;
 
     if (!track.streamUrl) {
       try {
-        localStorage.setItem('player_track', JSON.stringify(track))
+        localStorage.setItem('player_track', JSON.stringify(track));
       } catch (e) {
-        console.warn('Track storage error:', e)
+        console.warn('Track storage error:', e);
       }
     }
 
-    currentSrcRef.current = targetSrc
-    audio.src = targetSrc
-    audio.currentTime = 0
+    currentSrcRef.current = targetSrc;
+    audio.src = targetSrc;
+    audio.currentTime = 0;
+
+    radioSocket.sendFeedback(track.id, 'play_start', 0);
 
     audio
       .play()
-      .then(() => {
-        setIsPlaying(true)
-      })
-      .catch(err => {
-        console.warn('Playback error:', err)
-        setIsPlaying(false)
-      })
-  }
+      .then(() => setIsPlaying(true))
+      .catch((err) => {
+        console.warn('Playback error:', err);
+        setIsPlaying(false);
+      });
+  };
 
-  // Обновление названия текущего трека
-  const updateTrackTitle = newTitle => {
-    setCurrentTrack(prev => {
-      if (!prev) return prev
-      const updated = { ...prev, title: newTitle }
-      if (!prev.streamUrl) {
-        localStorage.setItem('player_track', JSON.stringify(updated))
+  // Обычный запуск трека из каталога или плейлиста выключает режим радио
+  const playTrack = (track, newQueue = null) => {
+    if (!track || !track.id) return;
+    const audio = audioRef.current;
+    const targetSrc = track.streamUrl || `/api/stream/${track.id}`;
+    const isSameTrack = currentTrack && String(currentTrack.id) === String(track.id);
+
+    if (isSameTrack && !track.streamUrl) {
+      if (!audio.src || currentSrcRef.current !== targetSrc) {
+        audio.src = targetSrc;
+        currentSrcRef.current = targetSrc;
       }
-      return updated
-    })
-  }
 
-  // Обновление обложки текущего трека
-  const updateTrackCover = newCover => {
-    setCurrentTrack(prev => {
-      if (!prev) return prev
-      const updated = { ...prev, cover: newCover }
-      if (!prev.streamUrl) {
-        localStorage.setItem('player_track', JSON.stringify(updated))
+      if (!audio.paused && isPlaying) {
+        audio.pause();
+      } else {
+        audio.play().catch(() => setIsPlaying(false));
       }
-      return updated
-    })
-  }
-
-  // Остановка плеера и очистка
-  const stopPlayer = () => {
-    const audio = audioRef.current
-    if (audio) {
-      audio.pause()
-      audio.src = ''
+      return;
     }
-    currentSrcRef.current = ''
-    setIsPlaying(false)
-    setCurrentTrack(null)
-    setQueue([])
-    localStorage.removeItem('player_track')
-    localStorage.removeItem('player_queue')
-  }
+
+    if (isRadioModeRef.current) {
+      stopLiveRadio();
+    }
+
+    playInternalTrack(track, newQueue);
+  };
+
+  const updateTrackTitle = (newTitle) => {
+    setCurrentTrack((prev) => {
+      if (!prev) return prev;
+      const updated = { ...prev, title: newTitle };
+      if (!prev.streamUrl) {
+        localStorage.setItem('player_track', JSON.stringify(updated));
+      }
+      return updated;
+    });
+  };
+
+  const updateTrackCover = (newCover) => {
+    setCurrentTrack((prev) => {
+      if (!prev) return prev;
+      const updated = { ...prev, cover: newCover };
+      if (!prev.streamUrl) {
+        localStorage.setItem('player_track', JSON.stringify(updated));
+      }
+      return updated;
+    });
+  };
+
+  const stopPlayer = () => {
+    const audio = audioRef.current;
+    if (audio) {
+      audio.pause();
+      audio.src = '';
+    }
+    stopLiveRadio();
+    currentSrcRef.current = '';
+    setIsPlaying(false);
+    setCurrentTrack(null);
+    setQueue([]);
+    localStorage.removeItem('player_track');
+    localStorage.removeItem('player_queue');
+  };
 
   return (
     <AudioContext.Provider
@@ -239,20 +347,25 @@ export const AudioProvider = ({ children }) => {
         currentTrack,
         queue,
         isPlaying,
+        isRadioMode,
+        radioGenre,
         volume,
         setVolume,
         playTrack,
+        startLiveRadio,
+        stopLiveRadio,
+        dislikeCurrentTrack,
         nextTrack,
         prevTrack,
         updateTrackTitle,
         updateTrackCover,
         stopPlayer,
-        audioRef
+        audioRef,
       }}
     >
       {children}
     </AudioContext.Provider>
-  )
-}
+  );
+};
 
-export const useAudioPlayer = () => useContext(AudioContext)
+export const useAudioPlayer = () => useContext(AudioContext);

@@ -67,6 +67,11 @@ module.exports = {
                 context: ['/api', '/login', '/register', '/profile', '/logout', '/uploads'],
                 target: 'http://localhost:4000',
                 changeOrigin: true
+            },
+            {
+                context: ['/socket'],
+                target: 'ws://localhost:4000',
+                ws: true
             }
         ]
     }

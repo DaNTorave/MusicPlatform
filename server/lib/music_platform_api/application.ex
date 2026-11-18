@@ -12,9 +12,8 @@ defmodule MusicPlatformApi.Application do
       MusicPlatformApi.Repo,
       {DNSCluster, query: Application.get_env(:music_platform_api, :dns_cluster_query) || :ignore},
       {Phoenix.PubSub, name: MusicPlatformApi.PubSub},
-      # Start a worker by calling: MusicPlatformApi.Worker.start_link(arg)
-      # {MusicPlatformApi.Worker, arg},
-      # Start to serve requests, typically the last entry
+      {Registry, keys: :unique, name: MusicPlatformApi.RadioRegistry},
+      {DynamicSupervisor, strategy: :one_for_one, name: MusicPlatformApi.RadioSupervisor},
       MusicPlatformApiWeb.Endpoint
     ]
 

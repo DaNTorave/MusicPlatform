@@ -13,15 +13,17 @@ import nextIcon from '../assets/next-icon.svg';
 import volumeIcon from '../assets/volume-icon.svg';
 import favoriteIcon from '../assets/favorite.svg';
 import downloadIcon from '../assets/download-icon.svg';
+import dislikeIcon from '../assets/dislike-icon.svg';
 
 import '../styles/GlobalPlayer.css';
-
 
 export default function GlobalPlayer() {
   const {
     currentTrack,
     queue,
     isPlaying,
+    isRadioMode,
+    dislikeCurrentTrack,
     playTrack,
     nextTrack,
     prevTrack,
@@ -85,7 +87,7 @@ export default function GlobalPlayer() {
     (t) => String(t.id) === String(currentTrack.id),
   );
   const hasPrev = currentIdx > 0;
-  const hasNext = currentIdx !== -1 && currentIdx + 1 < queue.length;
+  const hasNext = isRadioMode || (currentIdx !== -1 && currentIdx + 1 < queue.length);
 
   const allArtists = [];
   if (currentTrack.artist && currentTrack.artist.name) {
@@ -152,6 +154,12 @@ export default function GlobalPlayer() {
             ) : (
               <span className="player-title" title={currentTrack.title}>
                 {currentTrack.title}
+              </span>
+            )}
+
+            {isRadioMode && (
+              <span className="player-radio-badge" title="Персональный прямой эфир">
+                эфир
               </span>
             )}
 
@@ -254,15 +262,27 @@ export default function GlobalPlayer() {
             <img src={nextIcon} alt="Вперед" className="player-nav-icon" />
           </button>
 
-          <button
-            type="button"
-            className="player-btn-secondary player-side-action-btn"
-            onClick={handleDownload}
-            disabled={!currentTrack.id}
-            title="Скачать трек"
-          >
-            <img src={downloadIcon} alt="Скачать" className="player-side-icon" />
-          </button>
+          {isRadioMode ? (
+            <button
+              type="button"
+              className="player-btn-secondary player-side-action-btn player-dislike-btn"
+              onClick={dislikeCurrentTrack}
+              disabled={!currentTrack.id}
+              title="Не нравится (исключить из эфира)"
+            >
+              <img src={dislikeIcon} alt="Не нравится" className="player-side-icon" />
+            </button>
+          ) : (
+            <button
+              type="button"
+              className="player-btn-secondary player-side-action-btn"
+              onClick={handleDownload}
+              disabled={!currentTrack.id}
+              title="Скачать трек"
+            >
+              <img src={downloadIcon} alt="Скачать" className="player-side-icon" />
+            </button>
+          )}
         </div>
 
         <div className="player-progress-container">

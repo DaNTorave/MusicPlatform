@@ -1,8 +1,7 @@
-import React from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAudioPlayer } from '../context/AudioContext';
 import { useFavorites } from '../context/FavoritesContext';
-import { useState, useEffect, useRef } from 'react';
 
 import AgeBadge from '../components/AgeBadge';
 
@@ -14,6 +13,7 @@ import nextIcon from '../assets/next-icon.svg';
 import volumeIcon from '../assets/volume-icon.svg';
 import favoriteIcon from '../assets/favorite.svg';
 import downloadIcon from '../assets/download-icon.svg';
+import dislikeIcon from '../assets/dislike-icon.svg';
 
 import '../styles/PlayerPage.css';
 
@@ -23,6 +23,8 @@ export default function PlayerPage() {
     currentTrack,
     queue,
     isPlaying,
+    isRadioMode,
+    dislikeCurrentTrack,
     playTrack,
     nextTrack,
     prevTrack,
@@ -117,7 +119,7 @@ export default function PlayerPage() {
     (t) => String(t.id) === String(currentTrack.id),
   );
   const hasPrev = currentIdx > 0;
-  const hasNext = currentIdx !== -1 && currentIdx + 1 < queue.length;
+  const hasNext = isRadioMode || (currentIdx !== -1 && currentIdx + 1 < queue.length);
 
   const allArtists = [];
   if (currentTrack.artist && currentTrack.artist.name) {
@@ -222,6 +224,12 @@ export default function PlayerPage() {
         <div className="player-page-right">
           <div className="player-page-right-container">
             <div className="player-page-info">
+              {isRadioMode && (
+                <span className="player-page-radio-badge">
+                  Прямой эфир
+                </span>
+              )}
+
               <h1 className="player-page-title">{currentTrack.title}</h1>
 
               {currentTrack.age_restriction && (
@@ -329,14 +337,25 @@ export default function PlayerPage() {
                 <img src={nextIcon} alt="Вперед" />
               </button>
 
-              <button
-                type="button"
-                className="player-page-btn-secondary player-page-side-btn"
-                onClick={handleDownload}
-                title="Скачать трек"
-              >
-                <img src={downloadIcon} alt="Скачать" />
-              </button>
+              {isRadioMode ? (
+                <button
+                  type="button"
+                  className="player-page-btn-secondary player-page-side-btn player-page-dislike-btn"
+                  onClick={dislikeCurrentTrack}
+                  title="Не нравится (исключить из эфира)"
+                >
+                  <img src={dislikeIcon} alt="Не нравится" />
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  className="player-page-btn-secondary player-page-side-btn"
+                  onClick={handleDownload}
+                  title="Скачать трек"
+                >
+                  <img src={downloadIcon} alt="Скачать" />
+                </button>
+              )}
             </div>
 
             <div className="player-page-volume">

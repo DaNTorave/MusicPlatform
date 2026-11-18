@@ -225,13 +225,9 @@
 @media (max-width: 768px) {
   .global-player-bar {
     padding: 0 16px;
-
     gap: 10px;
-
     height: 75px;
-
     grid-template-columns: 1fr auto;
-
     margin: 0.75rem;
   }
 
@@ -241,25 +237,21 @@
 
   .player-cover {
     width: 44px;
-
     height: 44px;
   }
 
   .player-btn-main {
     width: 40px;
-
     height: 40px;
   }
 
   .global-player-player-main-icon {
     width: 20px;
-
     height: 20px;
   }
 
   .player-nav-icon {
     width: 22px;
-
     height: 22px;
   }
 }
@@ -282,6 +274,22 @@
   gap: 6px;
   max-width: 100%;
   min-width: 0;
+}
+
+.player-radio-badge {
+  flex-shrink: 0;
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: lowercase;
+  padding: 1px 7px;
+  border-radius: 6px;
+  background: rgba(23, 115, 207, 0.2);
+  border: 1px solid #1773cf;
+  color: #60a5fa;
+  user-select: none;
+  display: inline-flex;
+  align-items: center;
+  line-height: 1.2;
 }
 
 .player-cover-badge {
@@ -335,6 +343,10 @@
 .player-side-action-btn:hover {
   opacity: 1;
   transform: scale(1.1);
+}
+
+.player-dislike-btn:hover {
+  filter: invert(32%) sepia(93%) saturate(2893%) hue-rotate(343deg) brightness(95%) contrast(96%);
 }
 
 .player-side-icon {

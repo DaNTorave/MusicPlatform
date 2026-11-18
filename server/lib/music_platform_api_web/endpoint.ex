@@ -12,6 +12,10 @@ defmodule MusicPlatformApiWeb.Endpoint do
     websocket: [connect_info: [session: @session_options]],
     longpoll: [connect_info: [session: @session_options]]
 
+  socket "/socket", MusicPlatformApiWeb.UserSocket,
+    websocket: [check_origin: false],
+    longpoll: false
+
   plug Corsica,
     origins: [
       "http://localhost:3000",
