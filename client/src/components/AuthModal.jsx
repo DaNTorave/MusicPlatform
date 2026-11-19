@@ -4,7 +4,6 @@ import { apiClient } from '../api/apiClient';
 
 import InputField from './InputField';
 import Button from './Button';
-import ResetPassword from './ResetPassword';
 import { PreferencesFormContent } from './PreferencesStepModal';
 
 import google_logo from '../assets/google.svg';
@@ -19,7 +18,6 @@ export default function AuthModal({
   activeTab = 'login',
   onTabChange,
   onSuccess,
-  onShowNotification,
 }) {
   // Состояния для режима входа
   const [loginOrEmail, setLoginOrEmail] = useState('');
@@ -380,13 +378,7 @@ export default function AuthModal({
           required
           disabled={loadingLogin}
           autoComplete="current-password"
-        >
-          <div className="auth-modal-auth-forgot-password">
-            <a onClick={() => onTabChange && onTabChange('reset')}>
-              Забыли пароль?
-            </a>
-          </div>
-        </InputField>
+        />
 
         <Button
           type="submit"
@@ -670,17 +662,6 @@ export default function AuthModal({
           />
         )}
       </div>
-    );
-  }
-
-  // Отображение вкладки сброса пароля
-  if (activeTab === 'reset') {
-    return (
-      <ResetPassword
-        onSuccess={() => onTabChange && onTabChange('login')}
-        onSwitchToLogin={() => onTabChange && onTabChange('login')}
-        onShowNotification={onShowNotification}
-      />
     );
   }
 

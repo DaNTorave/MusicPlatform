@@ -198,50 +198,6 @@ defmodule MusicPlatformApi.Auth do
     end
   end
 
-  # Запрос на смену забытого пароля (криптостойкий случайный код)
-  def request_password_reset(email) do
-    case get_user_by_email(email) do
-      nil ->
-        {:error, :not_found}
-
-      user ->
-        <<num::unsigned-integer-32>> = :crypto.strong_rand_bytes(4)
-        code = (rem(num, 900_000) + 100_000) |> Integer.to_string()
-
-        claims = %{
-          "user_id" => user.id,
-          "reset_code" => code,
-          "purpose" => "reset_password",
-          "exp" => System.system_time(:second) + 300
-        }
-
-        case Token.generate_token(claims) do
-          {:ok, reset_token, _} -> {:ok, %{code: code, reset_token: reset_token}}
-          error -> error
-        end
-    end
-  end
-
-  # Проверка подтверждения нового пароля и reset_token
-  def reset_password(reset_token, code, new_password, new_password_confirmation) do
-    cond do
-      new_password != new_password_confirmation ->
-        {:error, :password_confirmation_mismatch}
-
-      true ->
-        with {:ok, claims} <- Token.verify_token(reset_token),
-             true <- claims["purpose"] == "reset_password",
-             true <- Plug.Crypto.secure_compare(to_string(claims["reset_code"]), to_string(code)),
-             user when not is_nil(user) <- get_user(claims["user_id"]) do
-          update_password(user, new_password)
-        else
-          false -> {:error, :invalid_code}
-          nil -> {:error, :user_not_found}
-          {:error, _reason} = err -> err
-        end
-    end
-  end
-
   # Получение списка пользователей для панели управления ролями
   def list_users(search_query \\ "") do
     base = from u in User, order_by: [asc: u.id]

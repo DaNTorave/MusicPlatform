@@ -20,9 +20,6 @@ defmodule MusicPlatformApiWeb.Router do
 
     put "/change-password", AuthController, :change_password
 
-    post "/reset-password/request", AuthController, :request_reset_password
-    post "/reset-password/confirm", AuthController, :confirm_reset_password
-
     put "/update-nickname", AuthController, :update_nickname
 
     # Аудиопоток и скачивание
