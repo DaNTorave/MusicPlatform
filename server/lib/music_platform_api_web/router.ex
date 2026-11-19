@@ -14,6 +14,7 @@ defmodule MusicPlatformApiWeb.Router do
     post "/logout", AuthController, :logout
     get "/profile/:id", AuthController, :get_public_profile
     get "/profile", AuthController, :get_profile
+    put "/profile/preferences", AuthController, :update_preferences
 
     post "/profile/avatar", AuthController, :upload_avatar
 

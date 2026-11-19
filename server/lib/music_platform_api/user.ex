@@ -1,6 +1,7 @@
 defmodule MusicPlatformApi.User do
   use Ecto.Schema
   import Ecto.Changeset
+  alias MusicPlatformApi.PasswordUtils
 
   # Иерархия доступных ролей
   @roles ["member", "moderator", "admin", "owner"]
@@ -71,17 +72,23 @@ defmodule MusicPlatformApi.User do
     |> validate_inclusion(:role, @roles)
   end
 
-  # Хеширование пароля
+  # Хеширование пароля с применением перца и соли Pbkdf2
   def put_password_hash(changeset) do
     case get_change(changeset, :password) do
-      nil -> changeset
-      password -> put_change(changeset, :password_hash, Pbkdf2.hash_pwd_salt(password))
+      nil ->
+        changeset
+
+      password ->
+        peppered = PasswordUtils.apply_pepper(password)
+        put_change(changeset, :password_hash, Pbkdf2.hash_pwd_salt(peppered))
     end
   end
 
-  # Проверка валидности пароля
-  def valid_password?(%__MODULE__{password_hash: hash}, password) when is_binary(hash) and is_binary(password) do
-    Pbkdf2.verify_pass(password, hash)
+  # Проверка валидности пароля (с поддержкой совместимости для старых хешей без перца)
+  def valid_password?(%__MODULE__{password_hash: hash}, password)
+      when is_binary(hash) and is_binary(password) do
+    peppered = PasswordUtils.apply_pepper(password)
+    Pbkdf2.verify_pass(peppered, hash) or Pbkdf2.verify_pass(password, hash)
   end
 
   def valid_password?(_, _), do: false

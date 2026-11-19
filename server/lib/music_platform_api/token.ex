@@ -1,5 +1,10 @@
 defmodule MusicPlatformApi.Token do
-  @secret System.get_env("SECRET_TOKEN") || "your-secret-key"
+  # Получение секретного ключа в рантайме
+  defp secret_key do
+    System.get_env("SECRET_TOKEN") ||
+      Application.get_env(:music_platform_api, MusicPlatformApiWeb.Endpoint)[:secret_key_base] ||
+      raise "SECRET_TOKEN или secret_key_base не настроены"
+  end
 
   # Генерация токена
   def generate_token(claims) do
@@ -14,13 +19,11 @@ defmodule MusicPlatformApi.Token do
           claims
         )
 
-      # Исключение пустых ключей
       clean_claims =
         claims_with_defaults
         |> Enum.filter(fn {_key, value} -> not is_nil(value) end)
         |> Map.new()
 
-      # Проверка наличия идентификатора пользователя
       if not Map.has_key?(clean_claims, "user_id") do
         raise "user_id is missing in claims"
       end
@@ -30,7 +33,7 @@ defmodule MusicPlatformApi.Token do
       claims_encoded = clean_claims |> Jason.encode!() |> base64url_encode()
 
       signature_data = header_encoded <> "." <> claims_encoded
-      signature = :crypto.mac(:hmac, :sha256, @secret, signature_data) |> base64url_encode()
+      signature = :crypto.mac(:hmac, :sha256, secret_key(), signature_data) |> base64url_encode()
 
       token = header_encoded <> "." <> claims_encoded <> "." <> signature
       {:ok, token, clean_claims}
@@ -46,13 +49,11 @@ defmodule MusicPlatformApi.Token do
       case String.split(token, ".") do
         [header_encoded, claims_encoded, signature_encoded] ->
           signature_data = header_encoded <> "." <> claims_encoded
-          expected_signature = :crypto.mac(:hmac, :sha256, @secret, signature_data) |> base64url_encode()
+          expected_signature = :crypto.mac(:hmac, :sha256, secret_key(), signature_data) |> base64url_encode()
 
-          # Проверка подписи
           if Plug.Crypto.secure_compare(signature_encoded, expected_signature) do
             claims = claims_encoded |> base64url_decode() |> Jason.decode!()
 
-            # Проверка времени жизни токена
             case claims do
               %{"exp" => exp} when is_integer(exp) ->
                 if exp < System.system_time(:second) do
@@ -62,7 +63,7 @@ defmodule MusicPlatformApi.Token do
                 end
 
               _ ->
-                {:ok, claims}
+                {:error, "В токене отсутствует срок действия"}
             end
           else
             {:error, "Неверная подпись токена"}
@@ -72,8 +73,8 @@ defmodule MusicPlatformApi.Token do
           {:error, "Неверный формат токена"}
       end
     rescue
-      error ->
-        {:error, "Недействительный токен: #{inspect(error)}"}
+      _error ->
+        {:error, "Недействительный токен"}
     end
   end
 

@@ -13,6 +13,17 @@ defmodule MusicPlatformApiWeb.MusicController do
     end
   end
 
+  defp optional_user(conn) do
+    case authenticate_user(conn) do
+      {:ok, user} -> user
+      _ -> nil
+    end
+  end
+
+  defp staff?(user) do
+    not is_nil(user) and user.role in ["owner", "admin", "moderator"]
+  end
+
   # Показ страницы артиста
   def get_artist(conn, %{"id" => id}) do
     case Music.get_artist_page(id) do
@@ -51,15 +62,8 @@ defmodule MusicPlatformApiWeb.MusicController do
 
   # Создание профиля артиста с парсингом жанров
   def create_artist(conn, params) do
-    with {:ok, user} <- authenticate_user(conn) do
-      params =
-        if upload = params["avatar"] do
-          {:ok, url, _path} = Music.save_upload(upload, "avatars")
-          Map.put(params, "avatar", url)
-        else
-          params
-        end
-
+    with {:ok, user} <- authenticate_user(conn),
+         {:ok, params} <- maybe_save_file(params, "avatar", "avatars") do
       params =
         case Map.get(params, "genres") do
           list when is_list(list) ->
@@ -95,7 +99,9 @@ defmodule MusicPlatformApiWeb.MusicController do
           |> json(%{success: true, artist: artist})
 
         {:error, changeset} ->
+          Music.delete_file(params["avatar"])
           errors = Ecto.Changeset.traverse_errors(changeset, fn {msg, _opts} -> msg end)
+
           conn
           |> put_status(:bad_request)
           |> json(%{error: "Ошибка создания артиста", details: errors})
@@ -103,16 +109,24 @@ defmodule MusicPlatformApiWeb.MusicController do
     else
       {:error, :unauthorized} ->
         conn |> put_status(:unauthorized) |> json(%{error: "Требуется авторизация"})
+
+      {:error, :invalid_file_type} ->
+        conn |> put_status(:bad_request) |> json(%{error: "Недопустимый формат изображения"})
+
+      {:error, :file_too_large} ->
+        conn |> put_status(:bad_request) |> json(%{error: "Файл превышает допустимый размер"})
+
+      {:error, _} ->
+        conn |> put_status(:bad_request) |> json(%{error: "Ошибка загрузки файла"})
     end
   end
 
   # Обновление артиста
   def update_artist(conn, %{"id" => id} = params) do
-    with {:ok, user} <- authenticate_user(conn) do
-      artist = Repo.get!(Artist, id)
-      is_staff = user.role in ["owner", "admin", "moderator"]
-
-      if artist.creator_id != user.id and not is_staff do
+    with {:ok, user} <- authenticate_user(conn),
+         valid_id when not is_nil(valid_id) <- Music.parse_nullable_id(id),
+         %Artist{} = artist <- Repo.get(Artist, valid_id) do
+      if artist.creator_id != user.id and not staff?(user) do
         conn |> put_status(:forbidden) |> json(%{error: "Нет прав на изменение"})
       else
         params =
@@ -145,24 +159,29 @@ defmodule MusicPlatformApiWeb.MusicController do
     else
       {:error, :unauthorized} ->
         conn |> put_status(:unauthorized) |> json(%{error: "Требуется авторизация"})
+
+      _ ->
+        conn |> put_status(:not_found) |> json(%{error: "Артист не найден"})
     end
   end
 
   # Создание сингла
   def create_single(conn, params) do
-    with {:ok, user} <- authenticate_user(conn) do
-      params =
-        params
-        |> maybe_save_file("cover", "covers")
-        |> maybe_save_audio("audio")
-
+    with {:ok, user} <- authenticate_user(conn),
+         {:ok, params} <- maybe_save_file(params, "cover", "covers"),
+         {:ok, params} <- maybe_save_audio(params, "audio") do
       case Music.create_single(params, user.id) do
         {:ok, track} ->
           raw_collabs = Map.get(params, "collaborator_ids") || Map.get(params, "collaborator_ids[]")
 
           if raw_collabs do
-            ids = if is_list(raw_collabs), do: raw_collabs, else: [raw_collabs]
+            ids =
+              (if is_list(raw_collabs), do: raw_collabs, else: [raw_collabs])
+              |> Enum.map(&Music.parse_nullable_id/1)
+              |> Enum.reject(&is_nil/1)
+
             artists = Repo.all(from a in Artist, where: a.id in ^ids)
+
             track
             |> Repo.preload(:collaborators)
             |> Ecto.Changeset.change()
@@ -173,127 +192,209 @@ defmodule MusicPlatformApiWeb.MusicController do
           conn |> put_status(:created) |> json(%{success: true, track: track})
 
         {:error, changeset} ->
-          conn |> put_status(:bad_request) |> json(%{errors: changeset})
+          Music.delete_file(params["cover"])
+          Music.delete_file(params["file_path"])
+          errors = Ecto.Changeset.traverse_errors(changeset, fn {msg, _opts} -> msg end)
+          conn |> put_status(:bad_request) |> json(%{error: "Ошибка создания трека", details: errors})
       end
     else
       {:error, :unauthorized} ->
         conn |> put_status(:unauthorized) |> json(%{error: "Требуется авторизация"})
+
+      {:error, :invalid_file_type} ->
+        conn |> put_status(:bad_request) |> json(%{error: "Недопустимый формат файла"})
+
+      {:error, :file_too_large} ->
+        conn |> put_status(:bad_request) |> json(%{error: "Размер файла превышает допустимый лимит"})
+
+      {:error, _} ->
+        conn |> put_status(:bad_request) |> json(%{error: "Ошибка загрузки файлов"})
     end
   end
 
   # Создание альбома
   def create_album(conn, params) do
-    with {:ok, user} <- authenticate_user(conn) do
-      params = maybe_save_file(params, "cover", "covers")
+    with {:ok, user} <- authenticate_user(conn),
+         {:ok, params} <- maybe_save_file(params, "cover", "covers") do
+      raw_tracks = Map.get(params, "tracks", %{})
 
-      tracks_params =
-        params
-        |> Map.get("tracks", %{})
-        |> Enum.map(fn {_idx, track} ->
-          track
-          |> maybe_save_file("cover", "covers")
-          |> maybe_save_audio("audio")
+      tracks_result =
+        Enum.reduce_while(raw_tracks, {:ok, []}, fn {_idx, track}, {:ok, acc} ->
+          with {:ok, t1} <- maybe_save_file(track, "cover", "covers"),
+               {:ok, t2} <- maybe_save_audio(t1, "audio") do
+            {:cont, {:ok, [t2 | acc]}}
+          else
+            err -> {:halt, err}
+          end
         end)
 
-      album_params = Map.put(params, "tracks", tracks_params)
+      case tracks_result do
+        {:ok, reversed_tracks} ->
+          album_params = Map.put(params, "tracks", Enum.reverse(reversed_tracks))
 
-      case Music.create_album_with_tracks(album_params, user.id) do
-        {:ok, album} ->
-          conn |> put_status(:created) |> json(%{success: true, album: album})
+          case Music.create_album_with_tracks(album_params, user.id) do
+            {:ok, album} ->
+              conn |> put_status(:created) |> json(%{success: true, album: album})
 
-        {:error, changeset} ->
-          conn |> put_status(:bad_request) |> json(%{errors: changeset})
+            {:error, changeset} ->
+              Music.delete_file(params["cover"])
+              errors = Ecto.Changeset.traverse_errors(changeset, fn {msg, _opts} -> msg end)
+              conn |> put_status(:bad_request) |> json(%{error: "Ошибка создания альбома", details: errors})
+          end
+
+        {:error, :invalid_file_type} ->
+          Music.delete_file(params["cover"])
+          conn |> put_status(:bad_request) |> json(%{error: "Один из файлов имеет недопустимый формат"})
+
+        {:error, :file_too_large} ->
+          Music.delete_file(params["cover"])
+          conn |> put_status(:bad_request) |> json(%{error: "Один из файлов превышает допустимый размер"})
+
+        {:error, _} ->
+          Music.delete_file(params["cover"])
+          conn |> put_status(:bad_request) |> json(%{error: "Ошибка загрузки файлов альбома"})
       end
     else
       {:error, :unauthorized} ->
         conn |> put_status(:unauthorized) |> json(%{error: "Требуется авторизация"})
+
+      {:error, :invalid_file_type} ->
+        conn |> put_status(:bad_request) |> json(%{error: "Недопустимый формат обложки"})
+
+      {:error, :file_too_large} ->
+        conn |> put_status(:bad_request) |> json(%{error: "Размер обложки превышает допустимый лимит"})
+
+      {:error, _} ->
+        conn |> put_status(:bad_request) |> json(%{error: "Ошибка загрузки обложки"})
     end
   end
 
-  # Удаление трека
+  # Удаление трека (только создатель или персонал)
   def delete_track(conn, %{"id" => id}) do
-    track = Repo.get!(Track, id)
+    with {:ok, user} <- authenticate_user(conn),
+         valid_id when not is_nil(valid_id) <- Music.parse_nullable_id(id),
+         %Track{} = track <- Repo.get(Track, valid_id) do
+      if track.creator_id != user.id and not staff?(user) do
+        conn |> put_status(:forbidden) |> json(%{error: "Нет прав на удаление трека"})
+      else
+        case Repo.delete(track) do
+          {:ok, deleted_track} ->
+            Music.delete_file(deleted_track.file_path)
+            Music.delete_file(deleted_track.cover)
+            json(conn, %{success: true, message: "Трек удален"})
 
-    case Repo.delete(track) do
-      {:ok, deleted_track} ->
-        Music.delete_file(deleted_track.file_path)
-        Music.delete_file(deleted_track.cover)
+          {:error, _changeset} ->
+            conn |> put_status(:bad_request) |> json(%{error: "Ошибка удаления трека"})
+        end
+      end
+    else
+      {:error, :unauthorized} ->
+        conn |> put_status(:unauthorized) |> json(%{error: "Требуется авторизация"})
 
-        json(conn, %{success: true, message: "Трек удален"})
-
-      {:error, _changeset} ->
-        conn |> put_status(:bad_request) |> json(%{error: "Ошибка удаления трека"})
+      _ ->
+        conn |> put_status(:not_found) |> json(%{error: "Трек не найден"})
     end
   end
 
-  # Удаление альбома
+  # Удаление альбома (только создатель или персонал)
   def delete_album(conn, %{"id" => id}) do
-    album = Repo.get!(Album, id) |> Repo.preload(:tracks)
+    with {:ok, user} <- authenticate_user(conn),
+         valid_id when not is_nil(valid_id) <- Music.parse_nullable_id(id),
+         %Album{} = album <- Repo.get(Album, valid_id) |> Repo.preload(:tracks) do
+      if album.creator_id != user.id and not staff?(user) do
+        conn |> put_status(:forbidden) |> json(%{error: "Нет прав на удаление альбома"})
+      else
+        case Repo.delete(album) do
+          {:ok, deleted_album} ->
+            Music.delete_file(deleted_album.cover)
 
-    case Repo.delete(album) do
-      {:ok, deleted_album} ->
-        Music.delete_file(deleted_album.cover)
+            Enum.each(deleted_album.tracks, fn track ->
+              Music.delete_file(track.file_path)
+              Music.delete_file(track.cover)
+            end)
 
-        Enum.each(deleted_album.tracks, fn track ->
-          Music.delete_file(track.file_path)
-          Music.delete_file(track.cover)
-        end)
+            json(conn, %{success: true, message: "Альбом и треки удалены"})
 
-        json(conn, %{success: true, message: "Альбом и треки удалены"})
+          {:error, _} ->
+            conn |> put_status(:bad_request) |> json(%{error: "Ошибка удаления альбома"})
+        end
+      end
+    else
+      {:error, :unauthorized} ->
+        conn |> put_status(:unauthorized) |> json(%{error: "Требуется авторизация"})
 
-      {:error, _} ->
-        conn |> put_status(:bad_request) |> json(%{error: "Ошибка удаления альбома"})
+      _ ->
+        conn |> put_status(:not_found) |> json(%{error: "Альбом не найден"})
     end
   end
 
-  # Удаление артиста
+  # Удаление артиста (только создатель или персонал)
   def delete_artist(conn, %{"id" => id}) do
-    artist =
-      Artist
-      |> Repo.get!(id)
-      |> Repo.preload([:albums, :tracks])
+    with {:ok, user} <- authenticate_user(conn),
+         valid_id when not is_nil(valid_id) <- Music.parse_nullable_id(id),
+         %Artist{} = artist <- Repo.get(Artist, valid_id) |> Repo.preload([:albums, :tracks]) do
+      if artist.creator_id != user.id and not staff?(user) do
+        conn |> put_status(:forbidden) |> json(%{error: "Нет прав на удаление артиста"})
+      else
+        case Repo.delete(artist) do
+          {:ok, deleted_artist} ->
+            Music.delete_file(deleted_artist.avatar)
 
-    case Repo.delete(artist) do
-      {:ok, deleted_artist} ->
-        Music.delete_file(deleted_artist.avatar)
+            Enum.each(deleted_artist.albums, fn album ->
+              Music.delete_file(album.cover)
+            end)
 
-        Enum.each(deleted_artist.albums, fn album ->
-          Music.delete_file(album.cover)
-        end)
+            Enum.each(deleted_artist.tracks, fn track ->
+              Music.delete_file(track.file_path)
+              Music.delete_file(track.cover)
+            end)
 
-        Enum.each(deleted_artist.tracks, fn track ->
-          Music.delete_file(track.file_path)
-          Music.delete_file(track.cover)
-        end)
+            json(conn, %{success: true, message: "Артист удален"})
 
-        json(conn, %{success: true, message: "Артист удален"})
+          {:error, _} ->
+            conn |> put_status(:bad_request) |> json(%{error: "Ошибка удаления артиста"})
+        end
+      end
+    else
+      {:error, :unauthorized} ->
+        conn |> put_status(:unauthorized) |> json(%{error: "Требуется авторизация"})
 
-      {:error, _} ->
-        conn |> put_status(:bad_request) |> json(%{error: "Ошибка удаления артиста"})
+      _ ->
+        conn |> put_status(:not_found) |> json(%{error: "Артист не найден"})
     end
   end
 
   defp maybe_save_file(params, key, folder) do
     case params[key] do
       %Plug.Upload{} = upload ->
-        {:ok, url, _} = Music.save_upload(upload, folder)
-        Map.put(params, key, url)
+        case Music.save_upload(upload, folder) do
+          {:ok, url, _} -> {:ok, Map.put(params, key, url)}
+          error -> error
+        end
 
       _ ->
-        params
+        {:ok, params}
     end
   end
 
   defp maybe_save_audio(params, key) do
     case params[key] do
       %Plug.Upload{} = upload ->
-        {:ok, _url, dest_path} = Music.save_upload(upload, "tracks")
-        params
-        |> Map.put("file_path", dest_path)
-        |> Map.put("audio_uuid", Ecto.UUID.generate())
+        case Music.save_upload(upload, "tracks") do
+          {:ok, _url, dest_path} ->
+            updated =
+              params
+              |> Map.put("file_path", dest_path)
+              |> Map.put("audio_uuid", Ecto.UUID.generate())
+
+            {:ok, updated}
+
+          error ->
+            error
+        end
 
       _ ->
-        params
+        {:ok, params}
     end
   end
 
@@ -338,53 +439,65 @@ defmodule MusicPlatformApiWeb.MusicController do
     json(conn, %{success: true, data: artists})
   end
 
-  # Получение одного трека
+  # Получение одного трека (неодобренные видны только автору и персоналу)
   def get_track(conn, %{"id" => id}) do
-    track =
-      MusicPlatformApi.Music.Track
-      |> MusicPlatformApi.Repo.get(id)
-      |> MusicPlatformApi.Repo.preload([:artist, :album, :collaborators, original_track: [:artist, :album]])
-
-    case track do
+    case Music.parse_nullable_id(id) do
       nil ->
-        conn
-        |> put_status(:not_found)
-        |> json(%{error: "Трек не найден"})
+        conn |> put_status(:not_found) |> json(%{error: "Трек не найден"})
 
-      track ->
-        json(conn, %{track: track})
+      valid_id ->
+        track =
+          Track
+          |> Repo.get(valid_id)
+          |> Repo.preload([:artist, :album, :collaborators, original_track: [:artist, :album]])
+
+        user = optional_user(conn)
+
+        cond do
+          is_nil(track) ->
+            conn |> put_status(:not_found) |> json(%{error: "Трек не найден"})
+
+          track.status != "approved" and not staff?(user) and (is_nil(user) or track.creator_id != user.id) ->
+            conn |> put_status(:not_found) |> json(%{error: "Трек не найден"})
+
+          true ->
+            json(conn, %{track: track})
+        end
     end
   end
 
   # Обновление трека
   def update_track(conn, %{"id" => id} = params) do
-    with {:ok, user} <- authenticate_user(conn) do
-      track = Repo.get!(Track, id)
-      is_staff = user.role in ["owner", "admin", "moderator"]
-
-      if track.creator_id != user.id and not is_staff do
+    with {:ok, user} <- authenticate_user(conn),
+         valid_id when not is_nil(valid_id) <- Music.parse_nullable_id(id),
+         %Track{} = track <- Repo.get(Track, valid_id) do
+      if track.creator_id != user.id and not staff?(user) do
         conn |> put_status(:forbidden) |> json(%{error: "Нет прав на изменение"})
       else
-        case track |> Track.changeset(params) |> Repo.update() do
-          {:ok, updated} -> json(conn, %{success: true, track: updated})
-          {:error, changeset} -> conn |> put_status(:bad_request) |> json(%{errors: changeset})
+        safe_params = Map.take(params, ["title", "release_year", "position", "age_restriction", "is_cover", "original_track_id"])
+
+        case track |> Track.changeset(safe_params) |> Repo.update() do
+          {:ok, updated} ->
+            json(conn, %{success: true, track: updated})
+
+          {:error, changeset} ->
+            errors = Ecto.Changeset.traverse_errors(changeset, fn {msg, _opts} -> msg end)
+            conn |> put_status(:bad_request) |> json(%{error: "Ошибка обновления трека", details: errors})
         end
       end
     else
       {:error, :unauthorized} ->
         conn |> put_status(:unauthorized) |> json(%{error: "Требуется авторизация"})
+
+      _ ->
+        conn |> put_status(:not_found) |> json(%{error: "Трек не найден"})
     end
   end
 
   # Список избранного
   def list_favorites(conn, params) do
     with {:ok, user} <- authenticate_user(conn) do
-      limit =
-        case params["limit"] do
-          nil -> nil
-          val -> String.to_integer(val)
-        end
-
+      limit = Music.parse_nullable_id(params["limit"])
       tracks = Music.list_user_favorites(user.id, limit)
       json(conn, %{success: true, data: tracks})
     else
@@ -407,19 +520,21 @@ defmodule MusicPlatformApiWeb.MusicController do
   # Добавление и удаление трека из избранного
   def toggle_favorite(conn, %{"track_id" => track_id}) do
     with {:ok, user} <- authenticate_user(conn) do
-      track_id = if is_binary(track_id), do: String.to_integer(track_id), else: track_id
-
       case Music.toggle_favorite(user.id, track_id) do
         {:ok, status} ->
           json(conn, %{success: true, status: status, is_favorite: status == :favorited})
 
-        {:error, reason} ->
-          conn |> put_status(:bad_request) |> json(%{error: inspect(reason)})
+        {:error, _reason} ->
+          conn |> put_status(:bad_request) |> json(%{error: "Не удалось обновить избранное"})
       end
     else
       {:error, :unauthorized} ->
         conn |> put_status(:unauthorized) |> json(%{error: "Требуется авторизация"})
     end
+  end
+
+  def toggle_favorite(conn, _params) do
+    conn |> put_status(:bad_request) |> json(%{error: "Не передан track_id"})
   end
 
   # Список всех плейлистов текущего пользователя
@@ -435,9 +550,14 @@ defmodule MusicPlatformApiWeb.MusicController do
 
   # Список публичных плейлистов пользователя для отображения в профиле
   def list_user_playlists(conn, %{"id" => user_id}) do
-    uid = Music.parse_int(user_id)
-    playlists = Music.list_user_public_playlists(uid)
-    json(conn, %{success: true, data: playlists})
+    case Music.parse_nullable_id(user_id) do
+      nil ->
+        json(conn, %{success: true, data: []})
+
+      uid ->
+        playlists = Music.list_user_public_playlists(uid)
+        json(conn, %{success: true, data: playlists})
+    end
   end
 
   # Получение плейлиста по ссылке
@@ -453,41 +573,46 @@ defmodule MusicPlatformApiWeb.MusicController do
 
   # Создание плейлиста
   def create_playlist(conn, params) do
-    with {:ok, user} <- authenticate_user(conn) do
-      params = maybe_save_file(params, "cover", "covers")
-
+    with {:ok, user} <- authenticate_user(conn),
+         {:ok, params} <- maybe_save_file(params, "cover", "covers") do
       case Music.create_playlist(params, user.id) do
         {:ok, playlist} ->
           conn |> put_status(:created) |> json(%{success: true, playlist: playlist})
 
         {:error, _changeset} ->
+          Music.delete_file(params["cover"])
           conn |> put_status(:bad_request) |> json(%{error: "Ошибка создания плейлиста"})
       end
     else
       {:error, :unauthorized} ->
         conn |> put_status(:unauthorized) |> json(%{error: "Требуется авторизация"})
+
+      {:error, :invalid_file_type} ->
+        conn |> put_status(:bad_request) |> json(%{error: "Недопустимый формат обложки"})
+
+      {:error, :file_too_large} ->
+        conn |> put_status(:bad_request) |> json(%{error: "Размер обложки превышает допустимый лимит"})
+
+      {:error, _} ->
+        conn |> put_status(:bad_request) |> json(%{error: "Ошибка загрузки обложки"})
     end
   end
 
   # Редактирование плейлиста
   def update_playlist(conn, %{"id" => id} = params) do
-    with {:ok, user} <- authenticate_user(conn) do
-      case Repo.get(Playlist, Music.parse_int(id)) do
-        nil ->
-          conn |> put_status(:not_found) |> json(%{error: "Плейлист не найден"})
+    with {:ok, user} <- authenticate_user(conn),
+         valid_id when not is_nil(valid_id) <- Music.parse_nullable_id(id),
+         %Playlist{} = playlist <- Repo.get(Playlist, valid_id) do
+      if playlist.user_id != user.id and not staff?(user) do
+        conn |> put_status(:forbidden) |> json(%{error: "Нет прав на редактирование плейлиста"})
+      else
+        old_cover = playlist.cover
 
-        playlist ->
-          is_staff = user.role in ["admin", "moderator", "owner"]
-
-          if playlist.user_id != user.id and not is_staff do
-            conn |> put_status(:forbidden) |> json(%{error: "Нет прав на редактирование плейлиста"})
-          else
-            old_cover = playlist.cover
-            params = maybe_save_file(params, "cover", "covers")
-
-            case Music.update_playlist(playlist, params) do
+        case maybe_save_file(params, "cover", "covers") do
+          {:ok, updated_params} ->
+            case Music.update_playlist(playlist, updated_params) do
               {:ok, updated} ->
-                if params["cover"] && params["cover"] != old_cover do
+                if updated_params["cover"] && updated_params["cover"] != old_cover do
                   Music.delete_file(old_cover)
                 end
 
@@ -496,94 +621,99 @@ defmodule MusicPlatformApiWeb.MusicController do
               {:error, _changeset} ->
                 conn |> put_status(:bad_request) |> json(%{error: "Ошибка обновления плейлиста"})
             end
-          end
+
+          {:error, :invalid_file_type} ->
+            conn |> put_status(:bad_request) |> json(%{error: "Недопустимый формат обложки"})
+
+          {:error, :file_too_large} ->
+            conn |> put_status(:bad_request) |> json(%{error: "Размер обложки превышает допустимый лимит"})
+
+          {:error, _} ->
+            conn |> put_status(:bad_request) |> json(%{error: "Ошибка загрузки обложки"})
+        end
       end
     else
       {:error, :unauthorized} ->
         conn |> put_status(:unauthorized) |> json(%{error: "Требуется авторизация"})
+
+      _ ->
+        conn |> put_status(:not_found) |> json(%{error: "Плейлист не найден"})
     end
   end
 
   # Удаление плейлиста
   def delete_playlist(conn, %{"id" => id}) do
-    with {:ok, user} <- authenticate_user(conn) do
-      case Repo.get(Playlist, Music.parse_int(id)) do
-        nil ->
-          conn |> put_status(:not_found) |> json(%{error: "Плейлист не найден"})
+    with {:ok, user} <- authenticate_user(conn),
+         valid_id when not is_nil(valid_id) <- Music.parse_nullable_id(id),
+         %Playlist{} = playlist <- Repo.get(Playlist, valid_id) do
+      if playlist.user_id != user.id and not staff?(user) do
+        conn |> put_status(:forbidden) |> json(%{error: "Нет прав на удаление плейлиста"})
+      else
+        case Music.delete_playlist(playlist) do
+          {:ok, _} ->
+            json(conn, %{success: true, message: "Плейлист удален"})
 
-        playlist ->
-          is_staff = user.role in ["admin", "moderator", "owner"]
-
-          if playlist.user_id != user.id and not is_staff do
-            conn |> put_status(:forbidden) |> json(%{error: "Нет прав на удаление плейлиста"})
-          else
-            case Music.delete_playlist(playlist) do
-              {:ok, _} ->
-                json(conn, %{success: true, message: "Плейлист удален"})
-
-              {:error, _} ->
-                conn |> put_status(:bad_request) |> json(%{error: "Ошибка удаления плейлиста"})
-            end
-          end
+          {:error, _} ->
+            conn |> put_status(:bad_request) |> json(%{error: "Ошибка удаления плейлиста"})
+        end
       end
     else
       {:error, :unauthorized} ->
         conn |> put_status(:unauthorized) |> json(%{error: "Требуется авторизация"})
+
+      _ ->
+        conn |> put_status(:not_found) |> json(%{error: "Плейлист не найден"})
     end
   end
 
   # Добавление или удаление трека в плейлисте
   def toggle_playlist_track(conn, %{"id" => id, "track_id" => track_id}) do
-    with {:ok, user} <- authenticate_user(conn) do
-      case Repo.get(Playlist, Music.parse_int(id)) do
-        nil ->
-          conn |> put_status(:not_found) |> json(%{error: "Плейлист не найден"})
+    with {:ok, user} <- authenticate_user(conn),
+         valid_id when not is_nil(valid_id) <- Music.parse_nullable_id(id),
+         %Playlist{} = playlist <- Repo.get(Playlist, valid_id) do
+      if playlist.user_id != user.id do
+        conn |> put_status(:forbidden) |> json(%{error: "Это чужой плейлист"})
+      else
+        case Music.toggle_track_in_playlist(playlist.id, track_id) do
+          {:ok, status} ->
+            {:ok, refreshed} = Music.get_playlist(playlist.id)
+            json(conn, %{success: true, status: status, playlist: refreshed})
 
-        playlist ->
-          if playlist.user_id != user.id do
-            conn |> put_status(:forbidden) |> json(%{error: "Это чужой плейлист"})
-          else
-            case Music.toggle_track_in_playlist(playlist.id, track_id) do
-              {:ok, status} ->
-                {:ok, refreshed} = Music.get_playlist(playlist.id)
-                json(conn, %{success: true, status: status, playlist: refreshed})
-
-              {:error, _} ->
-                conn |> put_status(:bad_request) |> json(%{error: "Не удалось изменить состав плейлиста"})
-            end
-          end
+          {:error, _} ->
+            conn |> put_status(:bad_request) |> json(%{error: "Не удалось изменить состав плейлиста"})
+        end
       end
     else
       {:error, :unauthorized} ->
         conn |> put_status(:unauthorized) |> json(%{error: "Требуется авторизация"})
+
+      _ ->
+        conn |> put_status(:not_found) |> json(%{error: "Плейлист не найден"})
     end
   end
 
   # Удаление трека из плейлиста по параметрам маршрута
   def remove_playlist_track(conn, %{"id" => id, "track_id" => track_id}) do
-    with {:ok, user} <- authenticate_user(conn) do
-      case Repo.get(Playlist, Music.parse_int(id)) do
-        nil ->
-          conn |> put_status(:not_found) |> json(%{error: "Плейлист не найден"})
+    with {:ok, user} <- authenticate_user(conn),
+         valid_id when not is_nil(valid_id) <- Music.parse_nullable_id(id),
+         %Playlist{} = playlist <- Repo.get(Playlist, valid_id) do
+      if playlist.user_id != user.id and not staff?(user) do
+        conn |> put_status(:forbidden) |> json(%{error: "Нет прав для изменения плейлиста"})
+      else
+        case Music.remove_track_from_playlist(playlist.id, track_id) do
+          {:ok, _} ->
+            json(conn, %{success: true, message: "Трек убран из плейлиста"})
 
-        playlist ->
-          is_staff = user.role in ["admin", "moderator", "owner"]
-
-          if playlist.user_id != user.id and not is_staff do
-            conn |> put_status(:forbidden) |> json(%{error: "Нет прав для изменения плейлиста"})
-          else
-            case Music.remove_track_from_playlist(playlist.id, track_id) do
-              {:ok, _} ->
-                json(conn, %{success: true, message: "Трек убран из плейлиста"})
-
-              {:error, :not_found} ->
-                conn |> put_status(:not_found) |> json(%{error: "Трек не найден в плейлисте"})
-            end
-          end
+          {:error, :not_found} ->
+            conn |> put_status(:not_found) |> json(%{error: "Трек не найден в плейлисте"})
+        end
       end
     else
       {:error, :unauthorized} ->
         conn |> put_status(:unauthorized) |> json(%{error: "Требуется авторизация"})
+
+      _ ->
+        conn |> put_status(:not_found) |> json(%{error: "Плейлист не найден"})
     end
   end
 end

@@ -7,7 +7,8 @@ defmodule MusicPlatformApiWeb.ModerationController do
   # Список на модерацию
   def pending_list(conn, _params) do
     with ["Bearer " <> token] <- get_req_header(conn, "authorization"),
-         user when not is_nil(user) and user.role in ["owner", "admin", "moderator"] <- Auth.get_user_from_token(token) do
+         user when not is_nil(user) and user.role in ["owner", "admin", "moderator"] <-
+           Auth.get_user_from_token(token) do
       format_creator = fn creator ->
         if creator, do: %{id: creator.id, login: creator.login, nickname: creator.nickname}, else: nil
       end
@@ -22,7 +23,7 @@ defmodule MusicPlatformApiWeb.ModerationController do
             id: orig.id,
             title: orig.title,
             cover: orig.cover,
-            artist: (if orig.artist, do: %{id: orig.artist.id, name: orig.artist.name}, else: nil)
+            artist: if(orig.artist, do: %{id: orig.artist.id, name: orig.artist.name}, else: nil)
           }
         else
           nil
@@ -46,7 +47,11 @@ defmodule MusicPlatformApiWeb.ModerationController do
             preload: [
               :creator,
               :artist,
-              tracks: ^from(t in Track, order_by: [asc: t.position, asc: t.id], preload: [:collaborators, original_track: [:artist]])
+              tracks:
+                ^from(t in Track,
+                  order_by: [asc: t.position, asc: t.id],
+                  preload: [:collaborators, original_track: [:artist]]
+                )
             ]
         )
         |> Enum.map(fn a ->
@@ -104,7 +109,8 @@ defmodule MusicPlatformApiWeb.ModerationController do
 
   def make_decision(conn, %{"schema" => schema_str, "id" => id, "status" => status} = params) do
     with ["Bearer " <> token] <- get_req_header(conn, "authorization"),
-         user when not is_nil(user) and user.role in ["owner", "admin", "moderator"] <- Auth.get_user_from_token(token) do
+         user when not is_nil(user) and user.role in ["owner", "admin", "moderator"] <-
+           Auth.get_user_from_token(token) do
       schema =
         case String.downcase(to_string(schema_str)) do
           "artist" -> Artist
@@ -120,6 +126,12 @@ defmodule MusicPlatformApiWeb.ModerationController do
         case Music.moderate_item(schema, id, status, comment) do
           {:ok, item} ->
             json(conn, %{success: true, item: item})
+
+          {:error, :not_found} ->
+            conn |> put_status(:not_found) |> json(%{error: "Объект не найден"})
+
+          {:error, :invalid_id} ->
+            conn |> put_status(:bad_request) |> json(%{error: "Некорректный ID"})
 
           {:error, %Ecto.Changeset{} = changeset} ->
             errors = Ecto.Changeset.traverse_errors(changeset, fn {msg, _opts} -> msg end)
@@ -142,7 +154,8 @@ defmodule MusicPlatformApiWeb.ModerationController do
 
   def approve_with_edit(conn, %{"schema" => schema_str} = params) do
     with ["Bearer " <> token] <- get_req_header(conn, "authorization"),
-         user when not is_nil(user) and user.role in ["owner", "admin", "moderator"] <- Auth.get_user_from_token(token) do
+         user when not is_nil(user) and user.role in ["owner", "admin", "moderator"] <-
+           Auth.get_user_from_token(token) do
       schema =
         case String.downcase(to_string(schema_str)) do
           "artist" -> Artist
@@ -152,100 +165,141 @@ defmodule MusicPlatformApiWeb.ModerationController do
           _ -> nil
         end
 
-      if is_nil(schema) do
-        return_error(conn, :bad_request, "Неизвестный тип сущности: #{schema_str}")
+      item_id = Music.parse_nullable_id(params["id"])
+
+      cond do
+        is_nil(schema) ->
+          return_error(conn, :bad_request, "Неизвестный тип сущности: #{schema_str}")
+
+        is_nil(item_id) ->
+          return_error(conn, :bad_request, "Некорректный ID объекта")
+
+        true ->
+          case Repo.get(schema, item_id) do
+            nil ->
+              return_error(conn, :not_found, "Объект не найден")
+
+            item ->
+              process_approve_with_edit(conn, schema, item, params)
+          end
+      end
+    else
+      _ -> conn |> put_status(:forbidden) |> json(%{error: "Доступ запрещен"})
+    end
+  end
+
+  defp process_approve_with_edit(conn, schema, item, params) do
+    was_pending = item.status == "pending"
+    update_attrs = %{status: "approved", moderation_comment: "Одобрено модератором"}
+
+    update_attrs =
+      if Map.has_key?(params, "title") and params["title"] != "" do
+        if schema == Artist,
+          do: Map.put(update_attrs, :name, params["title"]),
+          else: Map.put(update_attrs, :title, params["title"])
       else
-        item_id = if is_binary(params["id"]), do: String.to_integer(params["id"]), else: params["id"]
-        item = Repo.get!(schema, item_id)
-        was_pending = item.status == "pending"
+        update_attrs
+      end
 
-        update_attrs = %{status: "approved", moderation_comment: "Одобрено модератором"}
+    update_attrs =
+      if schema == Artist do
+        raw_genres = Map.get(params, "genres") || Map.get(params, "genres[]")
+        genre_str = Map.get(params, "genre")
 
-        update_attrs =
-          if Map.has_key?(params, "title") and params["title"] != "" do
-            if schema == Artist, do: Map.put(update_attrs, :name, params["title"]), else: Map.put(update_attrs, :title, params["title"])
-          else
-            update_attrs
+        genres_list =
+          cond do
+            is_list(raw_genres) -> raw_genres
+            is_binary(raw_genres) -> String.split(raw_genres, ",") |> Enum.map(&String.trim/1)
+            is_binary(genre_str) -> String.split(genre_str, ",") |> Enum.map(&String.trim/1)
+            true -> nil
           end
 
-        update_attrs =
-          if schema == Artist do
-            raw_genres = Map.get(params, "genres") || Map.get(params, "genres[]")
-            genre_str = Map.get(params, "genre")
+        if genres_list do
+          cleaned = Enum.reject(genres_list, &(&1 == ""))
 
-            genres_list =
-              cond do
-                is_list(raw_genres) -> raw_genres
-                is_binary(raw_genres) -> String.split(raw_genres, ",") |> Enum.map(&String.trim/1)
-                is_binary(genre_str) -> String.split(genre_str, ",") |> Enum.map(&String.trim/1)
-                true -> nil
-              end
+          update_attrs
+          |> Map.put(:genres, cleaned)
+          |> Map.put(:genre, Enum.join(cleaned, ", "))
+        else
+          update_attrs
+        end
+      else
+        update_attrs
+      end
 
-            if genres_list do
-              cleaned = Enum.reject(genres_list, &(&1 == ""))
-              update_attrs
-              |> Map.put(:genres, cleaned)
-              |> Map.put(:genre, Enum.join(cleaned, ", "))
-            else
-              update_attrs
-            end
-          else
-            update_attrs
+    update_attrs =
+      if Map.has_key?(params, "release_year") do
+        yr = Music.parse_int(params["release_year"])
+        Map.put(update_attrs, :release_year, if(yr > 0, do: yr, else: nil))
+      else
+        update_attrs
+      end
+
+    cover_result =
+      case Map.get(params, "cover") do
+        %Plug.Upload{} = upload ->
+          folder = if schema == Artist, do: "avatars", else: "covers"
+
+          with {:ok, url, _path} <- Music.save_upload(upload, folder) do
+            old_cover = if schema == Artist, do: item.avatar, else: item.cover
+            Music.delete_file(old_cover)
+
+            new_map =
+              if schema == Artist,
+                do: Map.put(update_attrs, :avatar, url),
+                else: Map.put(update_attrs, :cover, url)
+
+            {:ok, new_map}
           end
 
-        update_attrs =
-          if Map.has_key?(params, "release_year") do
-            yr = Music.parse_int(params["release_year"])
-            Map.put(update_attrs, :release_year, if(yr > 0, do: yr, else: nil))
-          else
-            update_attrs
-          end
+        _ ->
+          {:ok, update_attrs}
+      end
 
-        update_attrs =
-          case Map.get(params, "cover") do
-            %Plug.Upload{} = upload ->
-              folder = if schema == Artist, do: "avatars", else: "covers"
-              {:ok, url, _path} = Music.save_upload(upload, folder)
-
-              old_cover = if schema == Artist, do: item.avatar, else: item.cover
-              Music.delete_file(old_cover)
-
-              if schema == Artist, do: Map.put(update_attrs, :avatar, url), else: Map.put(update_attrs, :cover, url)
-
-            _ ->
-              update_attrs
-          end
-
-        update_attrs =
-          case {schema, Map.get(params, "audio")} do
-            {Track, %Plug.Upload{} = upload} ->
-              {:ok, _url, path} = Music.save_upload(upload, "tracks")
+    audio_result =
+      with {:ok, current_attrs} <- cover_result do
+        case {schema, Map.get(params, "audio")} do
+          {Track, %Plug.Upload{} = upload} ->
+            with {:ok, _url, path} <- Music.save_upload(upload, "tracks") do
               uuid = Path.basename(path, Path.extname(path))
-
               Music.delete_file(item.file_path)
 
-              update_attrs
-              |> Map.put(:audio_uuid, uuid)
-              |> Map.put(:file_path, path)
+              {:ok,
+               current_attrs
+               |> Map.put(:audio_uuid, uuid)
+               |> Map.put(:file_path, path)}
+            end
 
-            _ ->
-              update_attrs
-          end
+          _ ->
+            {:ok, current_attrs}
+        end
+      end
 
-        update_attrs =
+    case audio_result do
+      {:error, :invalid_file_type} ->
+        return_error(conn, :bad_request, "Недопустимый формат загружаемого файла")
+
+      {:error, :file_too_large} ->
+        return_error(conn, :bad_request, "Файл превышает допустимый размер")
+
+      {:error, _} ->
+        return_error(conn, :bad_request, "Ошибка обработки загружаемого файла")
+
+      {:ok, final_update_attrs} ->
+        final_update_attrs =
           if schema == Track do
             is_cover = Music.parse_boolean(Map.get(params, "is_cover"))
             orig_id = if is_cover, do: Music.parse_nullable_id(Map.get(params, "original_track_id")), else: nil
             pos = Music.parse_int(Map.get(params, "position"))
             age_restriction = Music.parse_boolean(Map.get(params, "age_restriction"))
 
-            update_attrs
+            final_update_attrs
             |> Map.put(:is_cover, is_cover)
             |> Map.put(:original_track_id, orig_id)
             |> Map.put(:position, if(pos > 0, do: pos, else: 1))
             |> Map.put(:age_restriction, age_restriction)
           else
-            update_attrs
+            final_update_attrs
           end
 
         Repo.transaction(fn ->
@@ -254,9 +308,8 @@ defmodule MusicPlatformApiWeb.ModerationController do
 
             submitted_track_ids =
               tracks_params
-              |> Enum.map(fn {_k, v} -> v["id"] end)
+              |> Enum.map(fn {_k, v} -> Music.parse_nullable_id(v["id"]) end)
               |> Enum.reject(&is_nil/1)
-              |> Enum.map(fn id -> if is_binary(id), do: String.to_integer(id), else: id end)
 
             tracks_to_delete =
               from(t in Track, where: t.album_id == ^item.id and t.id not in ^submitted_track_ids)
@@ -269,7 +322,7 @@ defmodule MusicPlatformApiWeb.ModerationController do
             end)
 
             Enum.each(tracks_params, fn {idx, t_param} ->
-              track_id = t_param["id"]
+              track_id = Music.parse_nullable_id(t_param["id"])
               t_is_cover = Music.parse_boolean(Map.get(t_param, "is_cover"))
               t_orig_id = if t_is_cover, do: Music.parse_nullable_id(Map.get(t_param, "original_track_id")), else: nil
               t_age = Music.parse_boolean(Map.get(t_param, "age_restriction"))
@@ -284,10 +337,14 @@ defmodule MusicPlatformApiWeb.ModerationController do
               t_pos = if pos_in_param > 0, do: pos_in_param, else: fallback_pos
 
               t_year_val = Music.parse_int(t_param["release_year"])
-              t_year = if t_year_val > 0, do: t_year_val, else: Map.get(update_attrs, :release_year, item.release_year)
 
-              if track_id && track_id != "" do
-                track = Repo.get(Track, track_id)
+              t_year =
+                if t_year_val > 0,
+                  do: t_year_val,
+                  else: Map.get(final_update_attrs, :release_year, item.release_year)
+
+              if track_id do
+                track = Repo.get_by(Track, id: track_id, album_id: item.id)
 
                 if track do
                   t_attrs = %{
@@ -305,14 +362,18 @@ defmodule MusicPlatformApiWeb.ModerationController do
                   t_attrs =
                     case t_param["audio"] do
                       %Plug.Upload{} = upload ->
-                        {:ok, _url, path} = Music.save_upload(upload, "tracks")
-                        uuid = Path.basename(path, Path.extname(path))
+                        case Music.save_upload(upload, "tracks") do
+                          {:ok, _url, path} ->
+                            uuid = Path.basename(path, Path.extname(path))
+                            Music.delete_file(track.file_path)
 
-                        Music.delete_file(track.file_path)
+                            t_attrs
+                            |> Map.put(:audio_uuid, uuid)
+                            |> Map.put(:file_path, path)
 
-                        t_attrs
-                        |> Map.put(:audio_uuid, uuid)
-                        |> Map.put(:file_path, path)
+                          {:error, reason} ->
+                            Repo.rollback(reason)
+                        end
 
                       _ ->
                         t_attrs
@@ -324,28 +385,36 @@ defmodule MusicPlatformApiWeb.ModerationController do
                   |> Repo.update!()
                 end
               else
-                if t_param["audio"] do
-                  %Plug.Upload{} = upload = t_param["audio"]
-                  {:ok, _url, path} = Music.save_upload(upload, "tracks")
-                  uuid = Path.basename(path, Path.extname(path))
+                case Map.get(t_param, "audio") do
+                  %Plug.Upload{} = upload ->
+                    case Music.save_upload(upload, "tracks") do
+                      {:ok, _url, path} ->
+                        uuid = Path.basename(path, Path.extname(path))
 
-                  %Track{}
-                  |> Track.changeset(%{
-                    "title" => t_param["title"] || "Без названия",
-                    "audio_uuid" => uuid,
-                    "file_path" => path,
-                    "album_id" => item.id,
-                    "artist_id" => item.artist_id,
-                    "creator_id" => item.creator_id,
-                    "is_single" => false,
-                    "is_cover" => t_is_cover,
-                    "original_track_id" => t_orig_id,
-                    "position" => t_pos,
-                    "release_year" => t_year,
-                    "age_restriction" => t_age
-                  })
-                  |> Track.moderation_changeset(%{status: "approved", moderation_comment: "Одобрено модератором"})
-                  |> Repo.insert!()
+                        %Track{}
+                        |> Track.changeset(%{
+                          "title" => t_param["title"] || "Без названия",
+                          "audio_uuid" => uuid,
+                          "file_path" => path,
+                          "album_id" => item.id,
+                          "artist_id" => item.artist_id,
+                          "creator_id" => item.creator_id,
+                          "is_single" => false,
+                          "is_cover" => t_is_cover,
+                          "original_track_id" => t_orig_id,
+                          "position" => t_pos,
+                          "release_year" => t_year,
+                          "age_restriction" => t_age
+                        })
+                        |> Track.moderation_changeset(%{status: "approved", moderation_comment: "Одобрено модератором"})
+                        |> Repo.insert!()
+
+                      {:error, reason} ->
+                        Repo.rollback(reason)
+                    end
+
+                  _ ->
+                    :ok
                 end
               end
             end)
@@ -363,7 +432,8 @@ defmodule MusicPlatformApiWeb.ModerationController do
                 id when is_binary(id) or is_integer(id) -> [id]
                 _ -> []
               end
-              |> Enum.reject(&(&1 == "" or is_nil(&1)))
+              |> Enum.map(&Music.parse_nullable_id/1)
+              |> Enum.reject(&is_nil/1)
 
             artists = Repo.all(from a in Artist, where: a.id in ^collab_ids)
 
@@ -390,7 +460,7 @@ defmodule MusicPlatformApiWeb.ModerationController do
           changeset =
             item
             |> schema.moderation_changeset(%{status: "approved", moderation_comment: "Одобрено модератором"})
-            |> Ecto.Changeset.change(Map.drop(update_attrs, [:status, :moderation_comment]))
+            |> Ecto.Changeset.change(Map.drop(final_update_attrs, [:status, :moderation_comment]))
 
           case Repo.update(changeset) do
             {:ok, updated_item} ->
@@ -423,9 +493,6 @@ defmodule MusicPlatformApiWeb.ModerationController do
             |> put_status(:bad_request)
             |> json(%{error: inspect(reason)})
         end
-      end
-    else
-      _ -> conn |> put_status(:forbidden) |> json(%{error: "Доступ запрещен"})
     end
   end
 
