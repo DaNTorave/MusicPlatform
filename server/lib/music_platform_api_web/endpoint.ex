@@ -62,7 +62,8 @@ defmodule MusicPlatformApiWeb.Endpoint do
   plug Plug.Static,
     at: "/uploads",
     from: Path.expand("priv/static/uploads"),
-    gzip: false
+    gzip: false,
+    only: ~w(avatars covers)
 
   if code_reloading? do
     plug Phoenix.CodeReloader
