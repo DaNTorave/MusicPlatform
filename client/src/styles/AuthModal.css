@@ -639,3 +639,55 @@
     transform: rotate(360deg);
   }
 }
+
+.auth-modal-login-status-checking {
+  font-size: 0.78rem;
+  color: #64748b;
+  font-weight: 500;
+}
+
+.auth-modal-login-status-ok {
+  font-size: 0.78rem;
+  color: #15803d;
+  font-weight: 600;
+}
+
+.auth-modal-legal-consents {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px 14px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+}
+
+.auth-modal-consent-label {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 0.82rem;
+  line-height: 1.4;
+  color: #334155;
+  cursor: pointer;
+}
+
+.auth-modal-consent-label input[type='checkbox'] {
+  width: 17px;
+  height: 17px;
+  margin-top: 2px;
+  flex-shrink: 0;
+  cursor: pointer;
+  accent-color: #1773cf;
+}
+
+.auth-modal-inline-doc-link {
+  background: none;
+  border: none;
+  padding: 0;
+  color: #1773cf;
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+  text-decoration: underline;
+}

@@ -66,9 +66,9 @@ export const apiClient = {
     } = options
     const headers = { 'Content-Type': 'application/json', ...rest.headers }
 
-    if (requireAuth) {
-      const token = this.getToken()
-      if (token) headers['Authorization'] = `Bearer ${token}`
+    const token = this.getToken()
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`
     }
 
     try {
@@ -81,7 +81,7 @@ export const apiClient = {
       const parsedData = await parseResponse(response)
 
       if (!response.ok) {
-        if (response.status === 401) {
+        if (response.status === 401 && requireAuth) {
           this.clearSession()
           window.dispatchEvent(new CustomEvent('auth:unauthorized'))
         }
@@ -112,6 +112,24 @@ export const apiClient = {
     }
   },
 
+  async checkLoginAvailability(login) {
+    return await this.request(
+      `/api/check-login?login=${encodeURIComponent(login)}`,
+      { method: 'GET' }
+    )
+  },
+
+  async fetchCurrentProfile() {
+    const res = await this.request('/api/profile', {
+      method: 'GET',
+      requireAuth: true
+    })
+    if (res?.user) {
+      this.setUser(res.user)
+    }
+    return res
+  },
+
   async login(credentials) {
     const response = await this.request('/api/login', {
       method: 'POST',
@@ -134,24 +152,15 @@ export const apiClient = {
       data: userData
     })
 
-    const loginResponse = await this.request('/api/login', {
-      method: 'POST',
-      data: {
-        login: userData.login,
-        password: userData.password
-      }
-    })
-
-    if (loginResponse?.token) {
-      this.setToken(loginResponse.token)
+    if (registerResponse?.token) {
+      this.setToken(registerResponse.token)
     }
-    if (loginResponse?.user) {
-      this.setUser(loginResponse.user)
+    if (registerResponse?.user) {
+      this.setUser(registerResponse.user)
     }
 
     return {
-      register: registerResponse,
-      login: loginResponse
+      register: registerResponse
     }
   },
 
@@ -242,13 +251,15 @@ export const apiClient = {
 
   async getUserPlaylists(userId) {
     return await this.request(`/api/users/${userId}/playlists`, {
-      method: 'GET'
+      method: 'GET',
+      requireAuth: true
     })
   },
 
   async getPlaylist(playlistId) {
     return await this.request(`/api/playlists/${playlistId}`, {
-      method: 'GET'
+      method: 'GET',
+      requireAuth: true
     })
   },
 
@@ -285,7 +296,6 @@ export const apiClient = {
     )
   },
 
-  // Методы панели владельца (owner)
   async getUsers(searchQuery = '') {
     const q = searchQuery ? `?query=${encodeURIComponent(searchQuery)}` : ''
     return await this.request(`/api/admin/users${q}`, {
@@ -302,10 +312,18 @@ export const apiClient = {
     })
   },
 
-  // Методы работы с жанрами
+  async moderateUserRegistration(userId, action) {
+    return await this.request('/api/moderation/users/decision', {
+      method: 'POST',
+      requireAuth: true,
+      data: { user_id: userId, action }
+    })
+  },
+
   async getGenres() {
     return await this.request('/api/genres', {
-      method: 'GET'
+      method: 'GET',
+      requireAuth: true
     })
   },
 
@@ -332,17 +350,15 @@ export const apiClient = {
     })
   },
 
-  // Получение каталога артистов с фильтрами
   async getArtists(params = {}) {
     const searchParams = new URLSearchParams()
     if (params.genre) searchParams.set('genre', params.genre)
     if (params.search) searchParams.set('search', params.search)
     const qs = searchParams.toString()
     const url = qs ? `/api/artists?${qs}` : '/api/artists'
-    return await this.request(url, { method: 'GET' })
+    return await this.request(url, { method: 'GET', requireAuth: true })
   },
 
-  // Обновление предпочитаемых жанров и исполнителей
   async updatePreferences(preferredGenres, preferredArtistIds) {
     return await this.request('/api/profile/preferences', {
       method: 'PUT',

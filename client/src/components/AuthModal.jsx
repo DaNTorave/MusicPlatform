@@ -5,14 +5,12 @@ import { apiClient } from '../api/apiClient';
 import InputField from './InputField';
 import Button from './Button';
 import { PreferencesFormContent } from './PreferencesStepModal';
+import LegalModal from './LegalModal';
 
-import google_logo from '../assets/google.svg';
-import github_logo from '../assets/github.svg';
 import eye from '../assets/eye.svg';
 import eye_crossed from '../assets/eye-crossed.svg';
 
 import '../styles/AuthModal.css';
-
 
 export default function AuthModal({
   activeTab = 'login',
@@ -31,12 +29,21 @@ export default function AuthModal({
   const [regNickname, setRegNickname] = useState('');
   const [regPassword, setRegPassword] = useState('');
   const [regConfirmPassword, setRegConfirmPassword] = useState('');
+  const [termsAccepted, setTermsAccepted] = useState(false);
+  const [privacyAccepted, setPrivacyAccepted] = useState(false);
+
   const [showRegPassword, setShowRegPassword] = useState(false);
   const [showRegConfirmPassword, setShowRegConfirmPassword] = useState(false);
   const [regFieldError, setRegFieldError] = useState('');
   const [isRegistrationComplete, setIsRegistrationComplete] = useState(false);
   const [preferredGenres, setPreferredGenres] = useState([]);
   const [preferredArtistIds, setPreferredArtistIds] = useState([]);
+
+  // Проверка уникальности логина на сервере
+  const [loginCheckStatus, setLoginCheckStatus] = useState('idle'); // 'idle' | 'checking' | 'available' | 'taken'
+
+  // Модальное окно с юридическими документами
+  const [legalDocModal, setLegalDocModal] = useState(null);
 
   // Ошибки валидации полей регистрации
   const [regErrors, setRegErrors] = useState({
@@ -45,6 +52,7 @@ export default function AuthModal({
     nickname: '',
     password: '',
     confirmPassword: '',
+    legal: '',
   });
 
   // Сброс локальных ошибок при переключении вкладки
@@ -55,6 +63,38 @@ export default function AuthModal({
       setRegStep('credentials');
     }
   }, [activeTab]);
+
+  // Проверка уникальности логина с задержкой при вводе
+  useEffect(() => {
+    if (activeTab !== 'register') return;
+    const trimmed = regLogin.trim();
+
+    if (!trimmed || trimmed.length < 3 || !/^[a-zA-Z0-9_]+$/.test(trimmed)) {
+      setLoginCheckStatus('idle');
+      return;
+    }
+
+    setLoginCheckStatus('checking');
+    const timer = setTimeout(async () => {
+      try {
+        const res = await apiClient.checkLoginAvailability(trimmed);
+        if (res?.available) {
+          setLoginCheckStatus('available');
+          setRegErrors((prev) => ({ ...prev, login: '' }));
+        } else {
+          setLoginCheckStatus('taken');
+          setRegErrors((prev) => ({
+            ...prev,
+            login: res?.error || 'Этот логин уже занят',
+          }));
+        }
+      } catch {
+        setLoginCheckStatus('idle');
+      }
+    }, 350);
+
+    return () => clearTimeout(timer);
+  }, [regLogin, activeTab]);
 
   // Мутация авторизации пользователя
   const { mutate: mutateLogin, loading: loadingLogin } = useMutation(
@@ -90,22 +130,16 @@ export default function AuthModal({
     },
   );
 
-  // Мутация регистрации с последующим автоматическим входом
+  // Мутация регистрации с сохранением сессии в статусе pending
   const { mutate: mutateRegister, loading: loadingRegister } = useMutation(
     '/api/register',
     {
       method: 'POST',
-      onSuccess: async () => {
-        try {
-          setIsRegistrationComplete(true);
-          await apiClient.login({
-            login: regLogin,
-            password: regPassword,
-          });
-          if (onSuccess) onSuccess();
-        } catch (err) {
-          if (onSuccess) onSuccess();
-        }
+      onSuccess: (data) => {
+        setIsRegistrationComplete(true);
+        if (data?.token) apiClient.setToken(data.token);
+        if (data?.user) apiClient.setUser(data.user);
+        if (onSuccess) onSuccess();
       },
       onError: (err) => {
         setRegStep('credentials');
@@ -121,6 +155,8 @@ export default function AuthModal({
               email: 'email',
               nickname: 'nickname',
               password: 'password',
+              terms_accepted: 'legal',
+              privacy_accepted: 'legal',
             };
 
             Object.keys(serverErrors).forEach((key) => {
@@ -175,14 +211,12 @@ export default function AuthModal({
     mutateLogin({ login: loginOrEmail, password: loginPassword });
   };
 
-  // Определение типа поля логина по наличию символов почты
   const getLoginInputType = () => {
     return loginOrEmail.includes('@') && loginOrEmail.includes('.')
       ? 'email'
       : 'text';
   };
 
-  // Определение текста подсказки для поля логина
   const getLoginPlaceholder = () => {
     return loginOrEmail.includes('@') && loginOrEmail.includes('.')
       ? 'example@mail.com'
@@ -201,7 +235,7 @@ export default function AuthModal({
           error = 'Логин должен содержать не менее 3 символов';
         } else if (!/^[a-zA-Z0-9_]+$/.test(value)) {
           error =
-            'Логин может содержать только буквы, цифры и символ подчеркивания';
+            'Логин может содержать только латинские буквы, цифры и символ подчеркивания';
         }
         break;
 
@@ -249,7 +283,6 @@ export default function AuthModal({
     return error;
   };
 
-  // Вычисление надежности пароля при регистрации
   const getPasswordStrength = (pwd) => {
     if (!pwd) return null;
     let score = 0;
@@ -265,7 +298,6 @@ export default function AuthModal({
     return { label: 'Очень сильный', class: 'auth-modal-very-strong' };
   };
 
-  // Обновление значения поля регистрации с проверкой валидации
   const handleRegFieldChange = (field, value) => {
     const setters = {
       login: setRegLogin,
@@ -286,7 +318,6 @@ export default function AuthModal({
     }
   };
 
-  // Переход ко второму шагу регистрации (выбор предпочтений)
   const handleProceedToPreferences = (e) => {
     e.preventDefault();
     setRegFieldError('');
@@ -310,7 +341,18 @@ export default function AuthModal({
       }
     });
 
-    setRegErrors(newErrors);
+    if (loginCheckStatus === 'taken') {
+      newErrors.login = regErrors.login || 'Этот логин уже занят';
+      hasError = true;
+    }
+
+    if (!termsAccepted || !privacyAccepted) {
+      newErrors.legal =
+        'Необходимо принять пользовательское соглашение и дать согласие на обработку персональных данных';
+      hasError = true;
+    }
+
+    setRegErrors((prev) => ({ ...prev, ...newErrors }));
 
     if (hasError) {
       return;
@@ -319,7 +361,6 @@ export default function AuthModal({
     setRegStep('preferences');
   };
 
-  // Завершение регистрации с отправкой выбранных жанров и артистов
   const handleCompleteRegistration = (genres, artistIds) => {
     setPreferredGenres(genres);
     setPreferredArtistIds(artistIds);
@@ -329,6 +370,8 @@ export default function AuthModal({
       email: regEmail.trim(),
       nickname: regNickname.trim(),
       password: regPassword,
+      terms_accepted: termsAccepted,
+      privacy_accepted: privacyAccepted,
       preferred_genres: genres,
       preferred_artist_ids: artistIds,
     });
@@ -341,7 +384,9 @@ export default function AuthModal({
     return (
       <form className="auth-modal-auth-form" onSubmit={handleLoginSubmit}>
         <h2 className="auth-modal-auth-form-title">Добро пожаловать!</h2>
-        <p className="auth-modal-auth-form-subtitle">Войдите, чтобы продолжить</p>
+        <p className="auth-modal-auth-form-subtitle">
+          Вход в закрытый музыкальный клуб
+        </p>
 
         {loginError && (
           <div className="auth-modal-auth-error-global" role="alert">
@@ -396,33 +441,10 @@ export default function AuthModal({
           )}
         </Button>
 
-        <div className="auth-modal-auth-divider">или</div>
-
-        <div className="auth-modal-social-buttons">
-          <Button
-            type="button"
-            variant="secondary"
-            disabled={loadingLogin}
-            onClick={() => alert('Вход через Google')}
-          >
-            <img className="auth-modal-social-button-icon" src={google_logo} alt="Google" />
-            Google
-          </Button>
-          <Button
-            type="button"
-            variant="secondary"
-            disabled={loadingLogin}
-            onClick={() => alert('Вход через GitHub')}
-          >
-            <img className="auth-modal-social-button-icon" src={github_logo} alt="GitHub" />
-            GitHub
-          </Button>
-        </div>
-
         <div className="auth-modal-auth-form-footer">
-          Нет аккаунта?{' '}
+          Нет доступа?{' '}
           <a onClick={() => onTabChange && onTabChange('register')}>
-            Зарегистрироваться
+            Подать заявку на регистрацию
           </a>
         </div>
       </form>
@@ -436,232 +458,280 @@ export default function AuthModal({
       !regLogin.trim() ||
       !regEmail.trim() ||
       !regPassword.trim() ||
-      !regConfirmPassword.trim();
+      !regConfirmPassword.trim() ||
+      !termsAccepted ||
+      !privacyAccepted;
     const passwordStrength = getPasswordStrength(regPassword);
 
     return (
-      <div className="auth-modal-auth-form-wrapper">
-        {regFieldError && (
-          <div className="auth-modal-auth-error-global" role="alert">
-            {regFieldError}
-          </div>
-        )}
+      <>
+        <LegalModal
+          isOpen={Boolean(legalDocModal)}
+          initialDoc={legalDocModal || 'privacy'}
+          onClose={() => setLegalDocModal(null)}
+        />
 
-        {isRegistrationComplete && (
-          <div className="auth-modal-auth-success-global" role="alert">
-            Регистрация успешна. Выполняется вход...
-          </div>
-        )}
-
-        {regStep === 'credentials' ? (
-          <form className="auth-modal-auth-form" onSubmit={handleProceedToPreferences}>
-            <h2 className="auth-modal-auth-form-title">Создать аккаунт</h2>
-            <p className="auth-modal-auth-form-subtitle">
-              Заполните регистрационные данные
-            </p>
-
-            <div className="auth-modal-auth-form-group">
-              <label htmlFor="register-login">
-                Логин <span className="auth-modal-required-star">*</span>
-              </label>
-              <input
-                id="register-login"
-                type="text"
-                placeholder="Введите логин"
-                value={regLogin}
-                onChange={(e) => handleRegFieldChange('login', e.target.value)}
-                required
-                disabled={loadingRegister}
-                className={regErrors.login ? 'auth-modal-error' : ''}
-              />
-              {regErrors.login && (
-                <span className="auth-modal-auth-error">{regErrors.login}</span>
-              )}
+        <div className="auth-modal-auth-form-wrapper">
+          {regFieldError && (
+            <div className="auth-modal-auth-error-global" role="alert">
+              {regFieldError}
             </div>
+          )}
 
-            <div className="auth-modal-auth-form-group">
-              <label htmlFor="register-email">
-                Email <span className="auth-modal-required-star">*</span>
-              </label>
-              <input
-                id="register-email"
-                type="email"
-                placeholder="example@mail.com"
-                value={regEmail}
-                onChange={(e) => handleRegFieldChange('email', e.target.value)}
-                required
-                disabled={loadingRegister}
-                className={regErrors.email ? 'auth-modal-error' : ''}
-              />
-              {regErrors.email && (
-                <span className="auth-modal-auth-error">{regErrors.email}</span>
-              )}
+          {isRegistrationComplete && (
+            <div className="auth-modal-auth-success-global" role="alert">
+              Заявка отправлена администратору. Ожидайте подтверждения.
             </div>
+          )}
 
-            <div className="auth-modal-auth-form-group">
-              <label htmlFor="register-nickname">
-                Никнейм <span className="auth-modal-optional-label">(необязательно)</span>
-              </label>
-              <input
-                id="register-nickname"
-                type="text"
-                placeholder="Введите никнейм"
-                value={regNickname}
-                onChange={(e) =>
-                  handleRegFieldChange('nickname', e.target.value)
-                }
-                disabled={loadingRegister}
-                className={regErrors.nickname ? 'auth-modal-error' : ''}
-              />
-              {regErrors.nickname && (
-                <span className="auth-modal-auth-error">{regErrors.nickname}</span>
-              )}
-            </div>
+          {regStep === 'credentials' ? (
+            <form className="auth-modal-auth-form" onSubmit={handleProceedToPreferences}>
+              <h2 className="auth-modal-auth-form-title">Заявка на регистрацию</h2>
+              <p className="auth-modal-auth-form-subtitle">
+                Доступ к платформе открывается после проверки администратором
+              </p>
 
-            <div className="auth-modal-auth-form-group">
-              <label htmlFor="register-password">
-                Пароль <span className="auth-modal-required-star">*</span>
-              </label>
-              <div className="auth-modal-password-input-wrapper">
+              <div className="auth-modal-auth-form-group">
+                <label htmlFor="register-login">
+                  Логин <span className="auth-modal-required-star">*</span>
+                </label>
                 <input
-                  id="register-password"
-                  type={showRegPassword ? 'text' : 'password'}
-                  placeholder="Минимум 8 символов"
-                  value={regPassword}
-                  onChange={(e) =>
-                    handleRegFieldChange('password', e.target.value)
-                  }
+                  id="register-login"
+                  type="text"
+                  placeholder="Уникальный логин (латиница, цифры, _)"
+                  value={regLogin}
+                  onChange={(e) => handleRegFieldChange('login', e.target.value)}
                   required
-                  minLength={8}
                   disabled={loadingRegister}
-                  className={regErrors.password ? 'auth-modal-error' : ''}
+                  className={regErrors.login ? 'auth-modal-error' : ''}
                 />
-                <button
-                  type="button"
-                  className="auth-modal-password-toggle"
-                  onClick={() => setShowRegPassword(!showRegPassword)}
-                  tabIndex="-1"
-                  disabled={loadingRegister}
-                >
-                  <img
-                    className="auth-modal-password-toggle-icon"
-                    src={showRegPassword ? eye_crossed : eye}
-                    alt="Видимость пароля"
-                  />
-                </button>
-              </div>
-              {regErrors.password && (
-                <span className="auth-modal-auth-error">{regErrors.password}</span>
-              )}
-              {regPassword && !regErrors.password && passwordStrength && (
-                <div className="auth-modal-password-strength">
-                  <div
-                    className={`auth-modal-password-strength-bar ${passwordStrength.class}`}
-                  ></div>
-                  <span
-                    className={`auth-modal-password-strength-text ${passwordStrength.class}`}
-                  >
-                    {passwordStrength.label}
+                {loginCheckStatus === 'checking' && !regErrors.login && (
+                  <span className="auth-modal-login-status-checking">
+                    Проверка доступности логина...
                   </span>
-                </div>
-              )}
-            </div>
-
-            <div className="auth-modal-auth-form-group">
-              <label htmlFor="register-confirm-password">
-                Подтверждение пароля <span className="auth-modal-required-star">*</span>
-              </label>
-              <div className="auth-modal-password-input-wrapper">
-                <input
-                  id="register-confirm-password"
-                  type={showRegConfirmPassword ? 'text' : 'password'}
-                  placeholder="Повторите пароль"
-                  value={regConfirmPassword}
-                  onChange={(e) =>
-                    handleRegFieldChange('confirmPassword', e.target.value)
-                  }
-                  required
-                  minLength={8}
-                  disabled={loadingRegister}
-                  className={regErrors.confirmPassword ? 'auth-modal-error' : ''}
-                />
-                <button
-                  type="button"
-                  className="auth-modal-password-toggle"
-                  onClick={() =>
-                    setShowRegConfirmPassword(!showRegConfirmPassword)
-                  }
-                  tabIndex="-1"
-                  disabled={loadingRegister}
-                >
-                  <img
-                    className="auth-modal-password-toggle-icon"
-                    src={showRegConfirmPassword ? eye_crossed : eye}
-                    alt="Видимость пароля"
-                  />
-                </button>
+                )}
+                {loginCheckStatus === 'available' && !regErrors.login && (
+                  <span className="auth-modal-login-status-ok">
+                    Логин свободен
+                  </span>
+                )}
+                {regErrors.login && (
+                  <span className="auth-modal-auth-error">{regErrors.login}</span>
+                )}
               </div>
-              {regErrors.confirmPassword && (
-                <span className="auth-modal-auth-error">{regErrors.confirmPassword}</span>
-              )}
-            </div>
 
-            <button
-              type="submit"
-              className="auth-modal-auth-submit-button"
-              disabled={loadingRegister || hasRegErrors || isRegEmpty}
-            >
-              Далее
-            </button>
-
-            <div className="auth-modal-auth-divider">или</div>
-
-            <div className="auth-modal-social-buttons">
-              <button
-                type="button"
-                className="auth-modal-social-button"
-                disabled={loadingRegister}
-                onClick={() => alert('Вход через Google')}
-              >
-                <img
-                  className="auth-modal-social-button-icon"
-                  src={google_logo}
-                  alt="Google"
+              <div className="auth-modal-auth-form-group">
+                <label htmlFor="register-email">
+                  Email <span className="auth-modal-required-star">*</span>
+                </label>
+                <input
+                  id="register-email"
+                  type="email"
+                  placeholder="example@mail.com"
+                  value={regEmail}
+                  onChange={(e) => handleRegFieldChange('email', e.target.value)}
+                  required
+                  disabled={loadingRegister}
+                  className={regErrors.email ? 'auth-modal-error' : ''}
                 />
-                Google
-              </button>
-              <button
-                type="button"
-                className="auth-modal-social-button"
-                disabled={loadingRegister}
-                onClick={() => alert('Вход через GitHub')}
-              >
-                <img
-                  className="auth-modal-social-button-icon"
-                  src={github_logo}
-                  alt="GitHub"
-                />
-                GitHub
-              </button>
-            </div>
+                {regErrors.email && (
+                  <span className="auth-modal-auth-error">{regErrors.email}</span>
+                )}
+              </div>
 
-            <div className="auth-modal-auth-form-footer">
-              Уже есть аккаунт?{' '}
-              <a onClick={() => onTabChange && onTabChange('login')}>Войти</a>
-            </div>
-          </form>
-        ) : (
-          <PreferencesFormContent
-            initialGenres={preferredGenres}
-            initialArtistIds={preferredArtistIds}
-            onCancel={() => setRegStep('credentials')}
-            onComplete={handleCompleteRegistration}
-            submitLabel={
-              loadingRegister ? 'Регистрация...' : 'Завершить регистрацию'
-            }
-          />
-        )}
-      </div>
+              <div className="auth-modal-auth-form-group">
+                <label htmlFor="register-nickname">
+                  Никнейм <span className="auth-modal-optional-label">(необязательно)</span>
+                </label>
+                <input
+                  id="register-nickname"
+                  type="text"
+                  placeholder="Введите никнейм"
+                  value={regNickname}
+                  onChange={(e) =>
+                    handleRegFieldChange('nickname', e.target.value)
+                  }
+                  disabled={loadingRegister}
+                  className={regErrors.nickname ? 'auth-modal-error' : ''}
+                />
+                {regErrors.nickname && (
+                  <span className="auth-modal-auth-error">{regErrors.nickname}</span>
+                )}
+              </div>
+
+              <div className="auth-modal-auth-form-group">
+                <label htmlFor="register-password">
+                  Пароль <span className="auth-modal-required-star">*</span>
+                </label>
+                <div className="auth-modal-password-input-wrapper">
+                  <input
+                    id="register-password"
+                    type={showRegPassword ? 'text' : 'password'}
+                    placeholder="Минимум 8 символов"
+                    value={regPassword}
+                    onChange={(e) =>
+                      handleRegFieldChange('password', e.target.value)
+                    }
+                    required
+                    minLength={8}
+                    disabled={loadingRegister}
+                    className={regErrors.password ? 'auth-modal-error' : ''}
+                  />
+                  <button
+                    type="button"
+                    className="auth-modal-password-toggle"
+                    onClick={() => setShowRegPassword(!showRegPassword)}
+                    tabIndex="-1"
+                    disabled={loadingRegister}
+                  >
+                    <img
+                      className="auth-modal-password-toggle-icon"
+                      src={showRegPassword ? eye_crossed : eye}
+                      alt="Видимость пароля"
+                    />
+                  </button>
+                </div>
+                {regErrors.password && (
+                  <span className="auth-modal-auth-error">{regErrors.password}</span>
+                )}
+                {regPassword && !regErrors.password && passwordStrength && (
+                  <div className="auth-modal-password-strength">
+                    <div
+                      className={`auth-modal-password-strength-bar ${passwordStrength.class}`}
+                    ></div>
+                    <span
+                      className={`auth-modal-password-strength-text ${passwordStrength.class}`}
+                    >
+                      {passwordStrength.label}
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              <div className="auth-modal-auth-form-group">
+                <label htmlFor="register-confirm-password">
+                  Подтверждение пароля <span className="auth-modal-required-star">*</span>
+                </label>
+                <div className="auth-modal-password-input-wrapper">
+                  <input
+                    id="register-confirm-password"
+                    type={showRegConfirmPassword ? 'text' : 'password'}
+                    placeholder="Повторите пароль"
+                    value={regConfirmPassword}
+                    onChange={(e) =>
+                      handleRegFieldChange('confirmPassword', e.target.value)
+                    }
+                    required
+                    minLength={8}
+                    disabled={loadingRegister}
+                    className={regErrors.confirmPassword ? 'auth-modal-error' : ''}
+                  />
+                  <button
+                    type="button"
+                    className="auth-modal-password-toggle"
+                    onClick={() =>
+                      setShowRegConfirmPassword(!showRegConfirmPassword)
+                    }
+                    tabIndex="-1"
+                    disabled={loadingRegister}
+                  >
+                    <img
+                      className="auth-modal-password-toggle-icon"
+                      src={showRegConfirmPassword ? eye_crossed : eye}
+                      alt="Видимость пароля"
+                    />
+                  </button>
+                </div>
+                {regErrors.confirmPassword && (
+                  <span className="auth-modal-auth-error">{regErrors.confirmPassword}</span>
+                )}
+              </div>
+
+              {/* Обязательные юридические согласия по законодательству РФ */}
+              <div className="auth-modal-legal-consents">
+                <label className="auth-modal-consent-label">
+                  <input
+                    type="checkbox"
+                    checked={privacyAccepted}
+                    onChange={(e) => {
+                      setPrivacyAccepted(e.target.checked);
+                      setRegErrors((prev) => ({ ...prev, legal: '' }));
+                    }}
+                    disabled={loadingRegister}
+                  />
+                  <span>
+                    Даю согласие на обработку персональных данных в соответствии с 152-ФЗ и{' '}
+                    <button
+                      type="button"
+                      className="auth-modal-inline-doc-link"
+                      onClick={() => setLegalDocModal('privacy')}
+                    >
+                      Политикой конфиденциальности
+                    </button>{' '}
+                    <span className="auth-modal-required-star">*</span>
+                  </span>
+                </label>
+
+                <label className="auth-modal-consent-label">
+                  <input
+                    type="checkbox"
+                    checked={termsAccepted}
+                    onChange={(e) => {
+                      setTermsAccepted(e.target.checked);
+                      setRegErrors((prev) => ({ ...prev, legal: '' }));
+                    }}
+                    disabled={loadingRegister}
+                  />
+                  <span>
+                    Подтверждаю достижение возраста 18 лет (436-ФЗ) и принимаю{' '}
+                    <button
+                      type="button"
+                      className="auth-modal-inline-doc-link"
+                      onClick={() => setLegalDocModal('terms')}
+                    >
+                      Пользовательское соглашение
+                    </button>{' '}
+                    <span className="auth-modal-required-star">*</span>
+                  </span>
+                </label>
+
+                {regErrors.legal && (
+                  <span className="auth-modal-auth-error">{regErrors.legal}</span>
+                )}
+              </div>
+
+              <button
+                type="submit"
+                className="auth-modal-auth-submit-button"
+                disabled={
+                  loadingRegister ||
+                  hasRegErrors ||
+                  isRegEmpty ||
+                  loginCheckStatus === 'checking' ||
+                  loginCheckStatus === 'taken'
+                }
+              >
+                Далее
+              </button>
+
+              <div className="auth-modal-auth-form-footer">
+                Уже есть аккаунт?{' '}
+                <a onClick={() => onTabChange && onTabChange('login')}>Войти</a>
+              </div>
+            </form>
+          ) : (
+            <PreferencesFormContent
+              initialGenres={preferredGenres}
+              initialArtistIds={preferredArtistIds}
+              onCancel={() => setRegStep('credentials')}
+              onComplete={handleCompleteRegistration}
+              submitLabel={
+                loadingRegister ? 'Отправка заявки...' : 'Отправить заявку'
+              }
+            />
+          )}
+        </div>
+      </>
     );
   }
 

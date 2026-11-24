@@ -4,147 +4,246 @@ defmodule MusicPlatformApiWeb.ModerationController do
   alias MusicPlatformApi.{Auth, Repo, Music}
   alias MusicPlatformApi.Music.{Artist, Album, Track}
 
-  # Список на модерацию
-  def pending_list(conn, _params) do
+  defp require_staff(conn) do
     with ["Bearer " <> token] <- get_req_header(conn, "authorization"),
-         user when not is_nil(user) and user.role in ["owner", "admin", "moderator"] <-
-           Auth.get_user_from_token(token) do
-      format_creator = fn creator ->
-        if creator, do: %{id: creator.id, login: creator.login, nickname: creator.nickname}, else: nil
-      end
-
-      format_artist = fn artist ->
-        if artist, do: %{id: artist.id, name: artist.name}, else: nil
-      end
-
-      format_original_track = fn orig ->
-        if orig do
-          %{
-            id: orig.id,
-            title: orig.title,
-            cover: orig.cover,
-            artist: if(orig.artist, do: %{id: orig.artist.id, name: orig.artist.name}, else: nil)
-          }
-        else
-          nil
-        end
-      end
-
-      artists =
-        Repo.all(from a in Artist, where: a.status == "pending", preload: [:creator])
-        |> Enum.map(fn a ->
-          a
-          |> Map.from_struct()
-          |> Map.drop([:__meta__, :creator, :albums, :tracks, :collab_tracks])
-          |> Map.put(:type, "artist")
-          |> Map.put(:creator_info, format_creator.(a.creator))
-        end)
-
-      albums =
-        Repo.all(
-          from a in Album,
-            where: a.status == "pending",
-            preload: [
-              :creator,
-              :artist,
-              tracks:
-                ^from(t in Track,
-                  order_by: [asc: t.position, asc: t.id],
-                  preload: [:collaborators, original_track: [:artist]]
-                )
-            ]
-        )
-        |> Enum.map(fn a ->
-          formatted_tracks =
-            Enum.map(a.tracks || [], fn t ->
-              %{
-                id: t.id,
-                title: t.title,
-                audio_uuid: t.audio_uuid,
-                duration_seconds: t.duration_seconds,
-                is_single: t.is_single,
-                status: t.status,
-                is_cover: t.is_cover,
-                position: t.position,
-                release_year: t.release_year,
-                original_track_id: t.original_track_id,
-                original_track: format_original_track.(t.original_track),
-                collaborators: Enum.map(t.collaborators || [], &%{id: &1.id, name: &1.name}),
-                age_restriction: t.age_restriction
-              }
-            end)
-
-          a
-          |> Map.from_struct()
-          |> Map.drop([:__meta__, :creator, :artist, :tracks])
-          |> Map.put(:type, "album")
-          |> Map.put(:tracks, formatted_tracks)
-          |> Map.put(:creator_info, format_creator.(a.creator))
-          |> Map.put(:artist_info, format_artist.(a.artist))
-        end)
-
-      tracks =
-        Repo.all(
-          from t in Track,
-            where: t.status == "pending" and t.is_single == true,
-            preload: [:creator, :artist, :collaborators, original_track: [:artist]]
-        )
-        |> Enum.map(fn t ->
-          t
-          |> Map.from_struct()
-          |> Map.drop([:__meta__, :creator, :artist, :album, :collaborators, :original_track])
-          |> Map.put(:type, "track")
-          |> Map.put(:creator_info, format_creator.(t.creator))
-          |> Map.put(:artist_info, format_artist.(t.artist))
-          |> Map.put(:original_track, format_original_track.(t.original_track))
-          |> Map.put(:collaborators, Enum.map(t.collaborators || [], &%{id: &1.id, name: &1.name}))
-          |> Map.put(:age_restriction, t.age_restriction)
-        end)
-
-      json(conn, %{items: artists ++ albums ++ tracks})
+         user when not is_nil(user) <- Auth.get_user_from_token(token),
+         true <- user.status == "approved" and user.role in ["owner", "admin", "moderator"] do
+      {:ok, user}
     else
-      _ -> conn |> put_status(:forbidden) |> json(%{error: "Доступ запрещен"})
+      _ -> {:error, :forbidden}
     end
   end
 
-  def make_decision(conn, %{"schema" => schema_str, "id" => id, "status" => status} = params) do
+  defp require_admin_or_owner(conn) do
     with ["Bearer " <> token] <- get_req_header(conn, "authorization"),
-         user when not is_nil(user) and user.role in ["owner", "admin", "moderator"] <-
-           Auth.get_user_from_token(token) do
-      schema =
-        case String.downcase(to_string(schema_str)) do
-          "artist" -> Artist
-          "album" -> Album
-          "track" -> Track
-          "single" -> Track
-          _ -> nil
-        end
-
-      if schema do
-        comment = Map.get(params, "comment", "")
-
-        case Music.moderate_item(schema, id, status, comment) do
-          {:ok, item} ->
-            json(conn, %{success: true, item: item})
-
-          {:error, :not_found} ->
-            conn |> put_status(:not_found) |> json(%{error: "Объект не найден"})
-
-          {:error, :invalid_id} ->
-            conn |> put_status(:bad_request) |> json(%{error: "Некорректный ID"})
-
-          {:error, %Ecto.Changeset{} = changeset} ->
-            errors = Ecto.Changeset.traverse_errors(changeset, fn {msg, _opts} -> msg end)
-            conn |> put_status(:bad_request) |> json(%{error: "Ошибка валидации", details: errors})
-
-          {:error, reason} ->
-            conn |> put_status(:bad_request) |> json(%{error: inspect(reason)})
-        end
-      else
-        conn |> put_status(:bad_request) |> json(%{error: "Неизвестный тип сущности: #{schema_str}"})
-      end
+         user when not is_nil(user) <- Auth.get_user_from_token(token),
+         true <- user.status == "approved" and user.role in ["owner", "admin"] do
+      {:ok, user}
     else
-      _ -> conn |> put_status(:forbidden) |> json(%{error: "Доступ запрещен"})
+      _ -> {:error, :forbidden}
+    end
+  end
+
+  # Список контента и заявок пользователей на модерацию
+  def pending_list(conn, _params) do
+    case require_staff(conn) do
+      {:ok, staff_user} ->
+        format_creator = fn creator ->
+          if creator, do: %{id: creator.id, login: creator.login, nickname: creator.nickname}, else: nil
+        end
+
+        format_artist = fn artist ->
+          if artist, do: %{id: artist.id, name: artist.name}, else: nil
+        end
+
+        format_original_track = fn orig ->
+          if orig do
+            %{
+              id: orig.id,
+              title: orig.title,
+              cover: orig.cover,
+              artist: if(orig.artist, do: %{id: orig.artist.id, name: orig.artist.name}, else: nil)
+            }
+          else
+            nil
+          end
+        end
+
+        artists =
+          Repo.all(from a in Artist, where: a.status == "pending", preload: [:creator])
+          |> Enum.map(fn a ->
+            a
+            |> Map.from_struct()
+            |> Map.drop([:__meta__, :creator, :albums, :tracks, :collab_tracks])
+            |> Map.put(:type, "artist")
+            |> Map.put(:creator_info, format_creator.(a.creator))
+          end)
+
+        albums =
+          Repo.all(
+            from a in Album,
+              where: a.status == "pending",
+              preload: [
+                :creator,
+                :artist,
+                tracks:
+                  ^from(t in Track,
+                    order_by: [asc: t.position, asc: t.id],
+                    preload: [:collaborators, original_track: [:artist]]
+                  )
+              ]
+          )
+          |> Enum.map(fn a ->
+            formatted_tracks =
+              Enum.map(a.tracks || [], fn t ->
+                %{
+                  id: t.id,
+                  title: t.title,
+                  audio_uuid: t.audio_uuid,
+                  duration_seconds: t.duration_seconds,
+                  is_single: t.is_single,
+                  status: t.status,
+                  is_cover: t.is_cover,
+                  position: t.position,
+                  release_year: t.release_year,
+                  original_track_id: t.original_track_id,
+                  original_track: format_original_track.(t.original_track),
+                  collaborators: Enum.map(t.collaborators || [], &%{id: &1.id, name: &1.name}),
+                  age_restriction: t.age_restriction
+                }
+              end)
+
+            a
+            |> Map.from_struct()
+            |> Map.drop([:__meta__, :creator, :artist, :tracks])
+            |> Map.put(:type, "album")
+            |> Map.put(:tracks, formatted_tracks)
+            |> Map.put(:creator_info, format_creator.(a.creator))
+            |> Map.put(:artist_info, format_artist.(a.artist))
+          end)
+
+        tracks =
+          Repo.all(
+            from t in Track,
+              where: t.status == "pending" and t.is_single == true,
+              preload: [:creator, :artist, :collaborators, original_track: [:artist]]
+          )
+          |> Enum.map(fn t ->
+            t
+            |> Map.from_struct()
+            |> Map.drop([:__meta__, :creator, :artist, :album, :collaborators, :original_track])
+            |> Map.put(:type, "track")
+            |> Map.put(:creator_info, format_creator.(t.creator))
+            |> Map.put(:artist_info, format_artist.(t.artist))
+            |> Map.put(:original_track, format_original_track.(t.original_track))
+            |> Map.put(:collaborators, Enum.map(t.collaborators || [], &%{id: &1.id, name: &1.name}))
+            |> Map.put(:age_restriction, t.age_restriction)
+          end)
+
+        pending_users =
+          if staff_user.role in ["owner", "admin"] do
+            Auth.list_pending_users()
+            |> Enum.map(fn u ->
+              %{
+                id: u.id,
+                login: u.login,
+                email: u.email,
+                nickname: u.nickname,
+                avatar: u.avatar,
+                status: u.status,
+                terms_accepted_at: u.terms_accepted_at,
+                privacy_accepted_at: u.privacy_accepted_at,
+                inserted_at: u.inserted_at
+              }
+            end)
+          else
+            []
+          end
+
+        json(conn, %{
+          items: artists ++ albums ++ tracks,
+          pending_users: pending_users,
+          can_moderate_users: staff_user.role in ["owner", "admin"]
+        })
+
+      {:error, :forbidden} ->
+        conn |> put_status(:forbidden) |> json(%{error: "Доступ запрещен"})
+    end
+  end
+
+  # Принятие решения по заявке нового пользователя (одобрение или отклонение с удалением)
+  def user_decision(conn, %{"user_id" => user_id, "action" => action}) do
+    case require_admin_or_owner(conn) do
+      {:ok, _admin} ->
+        case String.downcase(to_string(action)) do
+          "approve" ->
+            case Auth.approve_user(user_id) do
+              {:ok, user} ->
+                json(conn, %{
+                  success: true,
+                  message: "Пользователь @#{user.login} одобрен",
+                  user: %{id: user.id, login: user.login, status: user.status}
+                })
+
+              {:error, :not_found} ->
+                conn |> put_status(:not_found) |> json(%{error: "Пользователь не найден"})
+
+              {:error, reason} ->
+                conn |> put_status(:bad_request) |> json(%{error: inspect(reason)})
+            end
+
+          "reject" ->
+            case Auth.reject_and_delete_user(user_id) do
+              {:ok, deleted} ->
+                json(conn, %{
+                  success: true,
+                  message: "Заявка пользователя @#{deleted.login} отклонена, запись удалена"
+                })
+
+              {:error, :not_found} ->
+                conn |> put_status(:not_found) |> json(%{error: "Пользователь не найден"})
+
+              {:error, :already_approved} ->
+                conn |> put_status(:bad_request) |> json(%{error: "Нельзя отклонить уже одобренного пользователя"})
+
+              {:error, :cannot_delete_staff} ->
+                conn |> put_status(:forbidden) |> json(%{error: "Нельзя удалить сотрудника администрации"})
+
+              {:error, reason} ->
+                conn |> put_status(:bad_request) |> json(%{error: inspect(reason)})
+            end
+
+          _ ->
+            conn |> put_status(:bad_request) |> json(%{error: "Некорректное действие (ожидается approve или reject)"})
+        end
+
+      {:error, :forbidden} ->
+        conn |> put_status(:forbidden) |> json(%{error: "Доступ запрещен. Требуются права администратора или владельца."})
+    end
+  end
+
+  def user_decision(conn, _params) do
+    conn |> put_status(:bad_request) |> json(%{error: "Необходимо передать user_id и action"})
+  end
+
+  def make_decision(conn, %{"schema" => schema_str, "id" => id, "status" => status} = params) do
+    case require_staff(conn) do
+      {:ok, _user} ->
+        schema =
+          case String.downcase(to_string(schema_str)) do
+            "artist" -> Artist
+            "album" -> Album
+            "track" -> Track
+            "single" -> Track
+            _ -> nil
+          end
+
+        if schema do
+          comment = Map.get(params, "comment", "")
+
+          case Music.moderate_item(schema, id, status, comment) do
+            {:ok, item} ->
+              json(conn, %{success: true, item: item})
+
+            {:error, :not_found} ->
+              conn |> put_status(:not_found) |> json(%{error: "Объект не найден"})
+
+            {:error, :invalid_id} ->
+              conn |> put_status(:bad_request) |> json(%{error: "Некорректный ID"})
+
+            {:error, %Ecto.Changeset{} = changeset} ->
+              errors = Ecto.Changeset.traverse_errors(changeset, fn {msg, _opts} -> msg end)
+              conn |> put_status(:bad_request) |> json(%{error: "Ошибка валидации", details: errors})
+
+            {:error, reason} ->
+              conn |> put_status(:bad_request) |> json(%{error: inspect(reason)})
+          end
+        else
+          conn |> put_status(:bad_request) |> json(%{error: "Неизвестный тип сущности: #{schema_str}"})
+        end
+
+      {:error, :forbidden} ->
+        conn |> put_status(:forbidden) |> json(%{error: "Доступ запрещен"})
     end
   end
 
@@ -153,38 +252,38 @@ defmodule MusicPlatformApiWeb.ModerationController do
   end
 
   def approve_with_edit(conn, %{"schema" => schema_str} = params) do
-    with ["Bearer " <> token] <- get_req_header(conn, "authorization"),
-         user when not is_nil(user) and user.role in ["owner", "admin", "moderator"] <-
-           Auth.get_user_from_token(token) do
-      schema =
-        case String.downcase(to_string(schema_str)) do
-          "artist" -> Artist
-          "album" -> Album
-          "track" -> Track
-          "single" -> Track
-          _ -> nil
+    case require_staff(conn) do
+      {:ok, _user} ->
+        schema =
+          case String.downcase(to_string(schema_str)) do
+            "artist" -> Artist
+            "album" -> Album
+            "track" -> Track
+            "single" -> Track
+            _ -> nil
+          end
+
+        item_id = Music.parse_nullable_id(params["id"])
+
+        cond do
+          is_nil(schema) ->
+            return_error(conn, :bad_request, "Неизвестный тип сущности: #{schema_str}")
+
+          is_nil(item_id) ->
+            return_error(conn, :bad_request, "Некорректный ID объекта")
+
+          true ->
+            case Repo.get(schema, item_id) do
+              nil ->
+                return_error(conn, :not_found, "Объект не найден")
+
+              item ->
+                process_approve_with_edit(conn, schema, item, params)
+            end
         end
 
-      item_id = Music.parse_nullable_id(params["id"])
-
-      cond do
-        is_nil(schema) ->
-          return_error(conn, :bad_request, "Неизвестный тип сущности: #{schema_str}")
-
-        is_nil(item_id) ->
-          return_error(conn, :bad_request, "Некорректный ID объекта")
-
-        true ->
-          case Repo.get(schema, item_id) do
-            nil ->
-              return_error(conn, :not_found, "Объект не найден")
-
-            item ->
-              process_approve_with_edit(conn, schema, item, params)
-          end
-      end
-    else
-      _ -> conn |> put_status(:forbidden) |> json(%{error: "Доступ запрещен"})
+      {:error, :forbidden} ->
+        conn |> put_status(:forbidden) |> json(%{error: "Доступ запрещен"})
     end
   end
 

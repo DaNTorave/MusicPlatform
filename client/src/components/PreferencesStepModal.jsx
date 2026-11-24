@@ -10,7 +10,6 @@ import closeIcon from '../assets/close-icon.svg';
 
 import '../styles/PreferencesStepModal.css';
 
-
 export function PreferencesFormContent({
   initialGenres = [],
   initialArtistIds = [],
@@ -27,24 +26,26 @@ export function PreferencesFormContent({
   const [genreSearch, setGenreSearch] = useState('');
   const [artistSearch, setArtistSearch] = useState('');
   const [loading, setLoading] = useState(true);
+  const [catalogLocked, setCatalogLocked] = useState(false);
 
-  // Загрузка утвержденного кластера жанров и списка исполнителей
+  // Загрузка утвержденного кластера жанров и списка исполнителей (доступно после одобрения)
   useEffect(() => {
     Promise.all([apiClient.getGenres(), apiClient.getArtists()])
       .then(([genresRes, artistsRes]) => {
         if (genresRes?.data) setGenres(genresRes.data);
         if (artistsRes?.data) setArtists(artistsRes.data);
       })
+      .catch(() => {
+        setCatalogLocked(true);
+      })
       .finally(() => setLoading(false));
   }, []);
 
-  // Переключение жанра с каскадным удалением привязанных исполнителей
   const handleToggleGenre = (genreKey) => {
     if (selectedGenres.includes(genreKey)) {
       const nextGenres = selectedGenres.filter((k) => k !== genreKey);
       setSelectedGenres(nextGenres);
 
-      // Автоматическое удаление исполнителя, если ни один из его жанров больше не выбран
       setSelectedArtistIds((prevIds) =>
         prevIds.filter((aId) => {
           const artist = artists.find((a) => a.id === aId);
@@ -63,7 +64,6 @@ export function PreferencesFormContent({
     }
   };
 
-  // Переключение выбора исполнителя
   const handleToggleArtist = (artistId) => {
     setSelectedArtistIds((prev) =>
       prev.includes(artistId)
@@ -72,7 +72,6 @@ export function PreferencesFormContent({
     );
   };
 
-  // Формирование списка кандидатов исполнителей для второго шага
   const candidateArtists = useMemo(() => {
     let list = artists;
     if (selectedGenres.length > 0) {
@@ -96,7 +95,6 @@ export function PreferencesFormContent({
     return list.filter((a) => a.name && a.name.toLowerCase().includes(q));
   }, [artists, selectedGenres, artistSearch]);
 
-  // Фильтрация жанров по поисковой строке
   const filteredGenres = useMemo(() => {
     const q = genreSearch.trim().toLowerCase();
     if (!q) return genres;
@@ -109,6 +107,35 @@ export function PreferencesFormContent({
 
   if (loading) {
     return <p className="preferences-step-modal-status-message">Загрузка данных...</p>;
+  }
+
+  // Если каталог закрыт до одобрения регистрации, сразу предлагаем завершить отправку заявки
+  if (catalogLocked) {
+    return (
+      <div className="preferences-step-flow">
+        <div className="preferences-step">
+          <h2 className="preferences-step-modal-auth-form-title">Подтверждение отправки</h2>
+          <p className="preferences-step-modal-auth-form-subtitle">
+            Настройка музыкальных предпочтений станет доступна в личном кабинете сразу после одобрения вашей заявки администратором.
+          </p>
+
+          <div className="preferences-step-modal-modal-actions-row">
+            {onCancel && (
+              <Button type="button" variant="secondary" onClick={onCancel}>
+                Назад
+              </Button>
+            )}
+            <Button
+              type="button"
+              variant="primary"
+              onClick={() => onComplete([], [])}
+            >
+              {submitLabel}
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (

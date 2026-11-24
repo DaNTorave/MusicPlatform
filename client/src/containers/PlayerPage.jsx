@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAudioPlayer } from '../context/AudioContext';
 import { useFavorites } from '../context/FavoritesContext';
+import { apiClient } from '../api/apiClient';
 
 import AgeBadge from '../components/AgeBadge';
 
@@ -188,8 +189,11 @@ export default function PlayerPage() {
 
   const handleDownload = () => {
     if (!currentTrack.id) return;
+    const token = apiClient.getToken();
     const link = document.createElement('a');
-    link.href = `/api/download/${currentTrack.id}`;
+    link.href = token
+      ? `/api/download/${currentTrack.id}?token=${encodeURIComponent(token)}`
+      : `/api/download/${currentTrack.id}`;
     link.download = `${currentTrack.title || 'track'}.mp3`;
     document.body.appendChild(link);
     link.click();

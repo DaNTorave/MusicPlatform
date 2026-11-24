@@ -4,7 +4,7 @@ defmodule MusicPlatformApiWeb.AuthController do
   alias MusicPlatformApi.User
   alias MusicPlatformApi.Auth
 
-  # Проверка токена
+  # Проверка токена (в том числе для пользователей в статусе pending, чтобы проверять статус заявки)
   defp authenticate_request(conn, _opts) do
     with ["Bearer " <> token] <- get_req_header(conn, "authorization"),
          user when not is_nil(user) <- Auth.get_user_from_token(token) do
@@ -18,6 +18,58 @@ defmodule MusicPlatformApiWeb.AuthController do
     end
   end
 
+  # Проверка одобренного статуса учетной записи
+  defp require_approved_user(conn, _opts) do
+    conn = authenticate_request(conn, [])
+
+    if conn.halted do
+      conn
+    else
+      user = conn.assigns.current_user
+
+      if Auth.approved?(user) do
+        conn
+      else
+        conn
+        |> put_status(:forbidden)
+        |> json(%{error: "Учетная запись ожидает подтверждения администратором", status: user.status})
+        |> halt()
+      end
+    end
+  end
+
+  defp serialize_user(%User{} = user) do
+    %{
+      id: user.id,
+      login: user.login,
+      email: user.email,
+      nickname: user.nickname,
+      role: user.role,
+      status: user.status,
+      is_premium: user.is_premium,
+      avatar: user.avatar,
+      preferred_genres: user.preferred_genres || [],
+      preferred_artist_ids: user.preferred_artist_ids || [],
+      inserted_at: user.inserted_at,
+      updated_at: user.updated_at
+    }
+  end
+
+  # Проверка доступности логина до отправки формы
+  def check_login(conn, %{"login" => login}) do
+    case Auth.login_available?(login) do
+      :ok ->
+        json(conn, %{available: true})
+
+      {:error, reason} ->
+        json(conn, %{available: false, error: reason})
+    end
+  end
+
+  def check_login(conn, _params) do
+    json(conn, %{available: false, error: "Логин не передан"})
+  end
+
   # Регистрация
   def register(conn, params) do
     case Auth.register_user(params) do
@@ -26,20 +78,8 @@ defmodule MusicPlatformApiWeb.AuthController do
         |> put_status(:created)
         |> json(%{
           success: true,
-          message: "Регистрация прошла успешно",
-          user: %{
-            id: user.id,
-            login: user.login,
-            email: user.email,
-            nickname: user.nickname,
-            role: user.role,
-            is_premium: user.is_premium,
-            avatar: user.avatar,
-            preferred_genres: user.preferred_genres || [],
-            preferred_artist_ids: user.preferred_artist_ids || [],
-            inserted_at: user.inserted_at,
-            updated_at: user.updated_at
-          },
+          message: "Заявка на регистрацию отправлена администратору",
+          user: serialize_user(user),
           token: token
         })
 
@@ -62,19 +102,7 @@ defmodule MusicPlatformApiWeb.AuthController do
             |> json(%{
               success: true,
               message: "Вход выполнен успешно",
-              user: %{
-                id: user.id,
-                login: user.login,
-                email: user.email,
-                nickname: user.nickname,
-                role: user.role,
-                is_premium: user.is_premium,
-                avatar: user.avatar,
-                preferred_genres: user.preferred_genres || [],
-                preferred_artist_ids: user.preferred_artist_ids || [],
-                inserted_at: user.inserted_at,
-                updated_at: user.updated_at
-              },
+              user: serialize_user(user),
               token: token
             })
 
@@ -108,7 +136,7 @@ defmodule MusicPlatformApiWeb.AuthController do
         "new_password" => new_pwd,
         "new_password_confirmation" => new_pwd_conf
       }) do
-    conn = authenticate_request(conn, [])
+    conn = require_approved_user(conn, [])
 
     if conn.halted do
       conn
@@ -151,7 +179,7 @@ defmodule MusicPlatformApiWeb.AuthController do
     return_error(conn, :bad_request, "Необходимо заполнить все поля пароля")
   end
 
-  # Получение профиля
+  # Получение профиля (доступно и в статусе pending для проверки статуса заявки)
   def get_profile(conn, _params) do
     conn = authenticate_request(conn, [])
 
@@ -164,91 +192,64 @@ defmodule MusicPlatformApiWeb.AuthController do
       |> put_status(:ok)
       |> json(%{
         success: true,
-        user: %{
-          id: user.id,
-          login: user.login,
-          email: user.email,
-          nickname: user.nickname,
-          role: user.role,
-          is_premium: user.is_premium,
-          avatar: user.avatar,
-          preferred_genres: user.preferred_genres || [],
-          preferred_artist_ids: user.preferred_artist_ids || [],
-          inserted_at: user.inserted_at,
-          updated_at: user.updated_at
-        }
+        user: serialize_user(user)
       })
     end
   end
 
-  # Извлечение идентификатора пользователя из заголовка
-  defp extract_user_id_from_header(conn) do
-    with ["Bearer " <> token] <- get_req_header(conn, "authorization"),
-         {:ok, %{"user_id" => user_id}} when is_integer(user_id) <- Auth.verify_token(token) do
-      user_id
-    else
-      _ -> nil
-    end
-  end
-
-  # Получение профиля по идентификатору
+  # Получение профиля по идентификатору (только для одобренных пользователей закрытой площадки)
   def get_public_profile(conn, %{"id" => id}) do
-    case Integer.parse(id) do
-      {user_id, ""} ->
-        case Auth.get_user(user_id) do
-          nil ->
-            return_error(conn, :not_found, "Пользователь не найден")
+    conn = require_approved_user(conn, [])
 
-          user ->
-            current_user_id = extract_user_id_from_header(conn)
+    if conn.halted do
+      conn
+    else
+      current_user = conn.assigns.current_user
 
-            if is_integer(current_user_id) && user.id == current_user_id do
-              conn
-              |> put_status(:ok)
-              |> json(%{
-                success: true,
-                profile: %{
-                  id: user.id,
-                  login: user.login,
-                  email: user.email,
-                  nickname: user.nickname,
-                  role: user.role,
-                  is_premium: user.is_premium,
-                  avatar: user.avatar,
-                  preferred_genres: user.preferred_genres || [],
-                  preferred_artist_ids: user.preferred_artist_ids || [],
-                  inserted_at: user.inserted_at,
-                  updated_at: user.updated_at
-                }
-              })
-            else
-              conn
-              |> put_status(:ok)
-              |> json(%{
-                success: true,
-                profile: %{
-                  id: user.id,
-                  login: user.login,
-                  nickname: user.nickname,
-                  avatar: user.avatar,
-                  role: user.role,
-                  is_premium: user.is_premium,
-                  preferred_genres: user.preferred_genres || [],
-                  preferred_artist_ids: user.preferred_artist_ids || [],
-                  inserted_at: user.inserted_at
-                }
-              })
-            end
-        end
+      case Integer.parse(id) do
+        {user_id, ""} ->
+          case Auth.get_user(user_id) do
+            nil ->
+              return_error(conn, :not_found, "Пользователь не найден")
 
-      _ ->
-        return_error(conn, :bad_request, "Неверный формат ID пользователя")
+            user ->
+              if user.id == current_user.id do
+                conn
+                |> put_status(:ok)
+                |> json(%{
+                  success: true,
+                  profile: serialize_user(user)
+                })
+              else
+                conn
+                |> put_status(:ok)
+                |> json(%{
+                  success: true,
+                  profile: %{
+                    id: user.id,
+                    login: user.login,
+                    nickname: user.nickname,
+                    avatar: user.avatar,
+                    role: user.role,
+                    status: user.status,
+                    is_premium: user.is_premium,
+                    preferred_genres: user.preferred_genres || [],
+                    preferred_artist_ids: user.preferred_artist_ids || [],
+                    inserted_at: user.inserted_at
+                  }
+                })
+              end
+          end
+
+        _ ->
+          return_error(conn, :bad_request, "Неверный формат ID пользователя")
+      end
     end
   end
 
   # Обновление предпочтений пользователя
   def update_preferences(conn, params) do
-    conn = authenticate_request(conn, [])
+    conn = require_approved_user(conn, [])
 
     if conn.halted do
       conn
@@ -288,17 +289,7 @@ defmodule MusicPlatformApiWeb.AuthController do
           json(conn, %{
             success: true,
             message: "Предпочтения успешно сохранены",
-            user: %{
-              id: updated_user.id,
-              login: updated_user.login,
-              email: updated_user.email,
-              nickname: updated_user.nickname,
-              role: updated_user.role,
-              avatar: updated_user.avatar,
-              is_premium: updated_user.is_premium,
-              preferred_genres: updated_user.preferred_genres || [],
-              preferred_artist_ids: updated_user.preferred_artist_ids || []
-            }
+            user: serialize_user(updated_user)
           })
 
         {:error, changeset} ->
@@ -311,7 +302,7 @@ defmodule MusicPlatformApiWeb.AuthController do
 
   # Обновление никнейма
   def update_nickname(conn, %{"nickname" => nickname}) when is_binary(nickname) do
-    conn = authenticate_request(conn, [])
+    conn = require_approved_user(conn, [])
 
     if conn.halted do
       conn
@@ -325,15 +316,7 @@ defmodule MusicPlatformApiWeb.AuthController do
               json(conn, %{
                 message: "Никнейм успешно обновлен",
                 token: new_token,
-                user: %{
-                  id: updated_user.id,
-                  login: updated_user.login,
-                  nickname: updated_user.nickname,
-                  email: updated_user.email,
-                  role: updated_user.role,
-                  avatar: updated_user.avatar,
-                  is_premium: updated_user.is_premium
-                }
+                user: serialize_user(updated_user)
               })
 
             {:error, reason} ->
@@ -366,7 +349,7 @@ defmodule MusicPlatformApiWeb.AuthController do
 
   # Загрузка аватара
   def upload_avatar(conn, %{"avatar" => %Plug.Upload{} = upload}) do
-    conn = authenticate_request(conn, [])
+    conn = require_approved_user(conn, [])
 
     if conn.halted do
       conn
@@ -383,14 +366,7 @@ defmodule MusicPlatformApiWeb.AuthController do
               json(conn, %{
                 success: true,
                 avatar: updated_user.avatar,
-                user: %{
-                  id: updated_user.id,
-                  login: updated_user.login,
-                  nickname: updated_user.nickname,
-                  avatar: updated_user.avatar,
-                  role: updated_user.role,
-                  is_premium: updated_user.is_premium
-                }
+                user: serialize_user(updated_user)
               })
 
             {:error, changeset} ->

@@ -3,12 +3,14 @@ defmodule MusicPlatformApiWeb.Router do
 
   pipeline :api do
     plug :accepts, ["json"]
+    plug :put_secure_browser_headers, %{"x-robots-tag" => "noindex, nofollow, noarchive"}
   end
 
   scope "/api", MusicPlatformApiWeb do
     pipe_through :api
 
     # Пользователь
+    get "/check-login", AuthController, :check_login
     post "/register", AuthController, :register
     post "/login", AuthController, :login
     post "/logout", AuthController, :logout
@@ -54,9 +56,11 @@ defmodule MusicPlatformApiWeb.Router do
     delete "/albums/:id", MusicController, :delete_album
     delete "/artists/:id", MusicController, :delete_artist
 
+    # Модерация контента и регистраций
     get "/moderation/pending", ModerationController, :pending_list
     post "/moderation/decision", ModerationController, :make_decision
     post "/moderation/approve-with-edit", ModerationController, :approve_with_edit
+    post "/moderation/users/decision", ModerationController, :user_decision
 
     # Управление ролями (только для owner и admin)
     get "/admin/users", AdminController, :list_users

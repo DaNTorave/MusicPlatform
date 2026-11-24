@@ -4,60 +4,78 @@ defmodule MusicPlatformApiWeb.MusicController do
   alias MusicPlatformApi.{Auth, Music, Repo}
   alias MusicPlatformApi.Music.{Artist, Track, Album, Playlist}
 
+  # Проверка авторизации и одобренного статуса учетной записи
   defp authenticate_user(conn) do
     with ["Bearer " <> token] <- get_req_header(conn, "authorization"),
          user when not is_nil(user) <- Auth.get_user_from_token(token) do
-      {:ok, user}
+      if Auth.approved?(user) do
+        {:ok, user}
+      else
+        {:error, :pending_approval}
+      end
     else
       _ -> {:error, :unauthorized}
     end
   end
 
-  defp optional_user(conn) do
-    case authenticate_user(conn) do
-      {:ok, user} -> user
-      _ -> nil
-    end
+  defp reject_unauthenticated(conn, :pending_approval) do
+    conn
+    |> put_status(:forbidden)
+    |> json(%{error: "Доступ к контенту откроется после одобрения вашей заявки администратором"})
+  end
+
+  defp reject_unauthenticated(conn, _) do
+    conn
+    |> put_status(:unauthorized)
+    |> json(%{error: "Требуется авторизация для просмотра контента закрытой площадки"})
   end
 
   defp staff?(user) do
-    not is_nil(user) and user.role in ["owner", "admin", "moderator"]
+    not is_nil(user) and user.status == "approved" and user.role in ["owner", "admin", "moderator"]
   end
 
   # Показ страницы артиста
   def get_artist(conn, %{"id" => id}) do
-    case Music.get_artist_page(id) do
-      {:ok, data} -> json(conn, %{success: true, data: data})
-      {:error, :not_found} -> conn |> put_status(:not_found) |> json(%{error: "Артист не найден"})
+    with {:ok, _user} <- authenticate_user(conn) do
+      case Music.get_artist_page(id) do
+        {:ok, data} -> json(conn, %{success: true, data: data})
+        {:error, :not_found} -> conn |> put_status(:not_found) |> json(%{error: "Артист не найден"})
+      end
+    else
+      {:error, reason} -> reject_unauthenticated(conn, reason)
     end
   end
 
   # Список артистов с поддержкой фильтрации по жанру и поиску
   def list_artists(conn, params) do
-    genre_param = Map.get(params, "genre")
-    search_param = Map.get(params, "search")
+    with {:ok, _user} <- authenticate_user(conn) do
+      genre_param = Map.get(params, "genre")
+      search_param = Map.get(params, "search")
 
-    query = from a in Artist, where: a.status == "approved"
+      query = from a in Artist, where: a.status == "approved"
 
-    query =
-      if genre_param && String.trim(genre_param) != "" do
-        target = String.trim(genre_param)
-        from a in query, where: ^target in a.genres or ilike(a.genre, ^"%#{target}%")
-      else
-        query
-      end
+      query =
+        if genre_param && String.trim(genre_param) != "" do
+          target = String.trim(genre_param)
+          from a in query, where: ^target in a.genres or ilike(a.genre, ^"%#{target}%")
+        else
+          query
+        end
 
-    query =
-      if search_param && String.trim(search_param) != "" do
-        search_term = "%#{String.trim(search_param)}%"
-        from a in query, where: ilike(a.name, ^search_term)
-      else
-        query
-      end
+      query =
+        if search_param && String.trim(search_param) != "" do
+          search_term = "%#{String.trim(search_param)}%"
+          from a in query, where: ilike(a.name, ^search_term)
+        else
+          query
+        end
 
-    query = from a in query, order_by: [desc: a.plays_count, desc: a.inserted_at]
-    artists = Repo.all(query)
-    json(conn, %{success: true, data: artists})
+      query = from a in query, order_by: [desc: a.plays_count, desc: a.inserted_at]
+      artists = Repo.all(query)
+      json(conn, %{success: true, data: artists})
+    else
+      {:error, reason} -> reject_unauthenticated(conn, reason)
+    end
   end
 
   # Создание профиля артиста с парсингом жанров
@@ -108,7 +126,10 @@ defmodule MusicPlatformApiWeb.MusicController do
       end
     else
       {:error, :unauthorized} ->
-        conn |> put_status(:unauthorized) |> json(%{error: "Требуется авторизация"})
+        reject_unauthenticated(conn, :unauthorized)
+
+      {:error, :pending_approval} ->
+        reject_unauthenticated(conn, :pending_approval)
 
       {:error, :invalid_file_type} ->
         conn |> put_status(:bad_request) |> json(%{error: "Недопустимый формат изображения"})
@@ -158,7 +179,10 @@ defmodule MusicPlatformApiWeb.MusicController do
       end
     else
       {:error, :unauthorized} ->
-        conn |> put_status(:unauthorized) |> json(%{error: "Требуется авторизация"})
+        reject_unauthenticated(conn, :unauthorized)
+
+      {:error, :pending_approval} ->
+        reject_unauthenticated(conn, :pending_approval)
 
       _ ->
         conn |> put_status(:not_found) |> json(%{error: "Артист не найден"})
@@ -199,7 +223,10 @@ defmodule MusicPlatformApiWeb.MusicController do
       end
     else
       {:error, :unauthorized} ->
-        conn |> put_status(:unauthorized) |> json(%{error: "Требуется авторизация"})
+        reject_unauthenticated(conn, :unauthorized)
+
+      {:error, :pending_approval} ->
+        reject_unauthenticated(conn, :pending_approval)
 
       {:error, :invalid_file_type} ->
         conn |> put_status(:bad_request) |> json(%{error: "Недопустимый формат файла"})
@@ -256,7 +283,10 @@ defmodule MusicPlatformApiWeb.MusicController do
       end
     else
       {:error, :unauthorized} ->
-        conn |> put_status(:unauthorized) |> json(%{error: "Требуется авторизация"})
+        reject_unauthenticated(conn, :unauthorized)
+
+      {:error, :pending_approval} ->
+        reject_unauthenticated(conn, :pending_approval)
 
       {:error, :invalid_file_type} ->
         conn |> put_status(:bad_request) |> json(%{error: "Недопустимый формат обложки"})
@@ -289,7 +319,10 @@ defmodule MusicPlatformApiWeb.MusicController do
       end
     else
       {:error, :unauthorized} ->
-        conn |> put_status(:unauthorized) |> json(%{error: "Требуется авторизация"})
+        reject_unauthenticated(conn, :unauthorized)
+
+      {:error, :pending_approval} ->
+        reject_unauthenticated(conn, :pending_approval)
 
       _ ->
         conn |> put_status(:not_found) |> json(%{error: "Трек не найден"})
@@ -321,7 +354,10 @@ defmodule MusicPlatformApiWeb.MusicController do
       end
     else
       {:error, :unauthorized} ->
-        conn |> put_status(:unauthorized) |> json(%{error: "Требуется авторизация"})
+        reject_unauthenticated(conn, :unauthorized)
+
+      {:error, :pending_approval} ->
+        reject_unauthenticated(conn, :pending_approval)
 
       _ ->
         conn |> put_status(:not_found) |> json(%{error: "Альбом не найден"})
@@ -357,7 +393,10 @@ defmodule MusicPlatformApiWeb.MusicController do
       end
     else
       {:error, :unauthorized} ->
-        conn |> put_status(:unauthorized) |> json(%{error: "Требуется авторизация"})
+        reject_unauthenticated(conn, :unauthorized)
+
+      {:error, :pending_approval} ->
+        reject_unauthenticated(conn, :pending_approval)
 
       _ ->
         conn |> put_status(:not_found) |> json(%{error: "Артист не найден"})
@@ -400,69 +439,79 @@ defmodule MusicPlatformApiWeb.MusicController do
 
   # Топ 100 треков по прослушиваниям
   def top_tracks(conn, _params) do
-    tracks =
-      Repo.all(
-        from t in Track,
-          where: t.status == "approved",
-          order_by: [desc: t.plays_count, desc: t.inserted_at],
-          limit: 100,
-          preload: [:artist, :album, :collaborators]
-      )
-      |> Enum.map(fn t ->
-        %{
-          id: t.id,
-          title: t.title,
-          duration_seconds: t.duration_seconds || 0,
-          plays_count: t.plays_count || 0,
-          likes_count: t.likes_count || 0,
-          cover: Track.resolve_cover(t),
-          artist: if(t.artist, do: %{id: t.artist.id, name: t.artist.name}, else: nil),
-          collaborators: Enum.map(t.collaborators || [], &%{id: &1.id, name: &1.name}),
-          album_id: t.album_id,
-          age_restriction: t.age_restriction
-        }
-      end)
+    with {:ok, _user} <- authenticate_user(conn) do
+      tracks =
+        Repo.all(
+          from t in Track,
+            where: t.status == "approved",
+            order_by: [desc: t.plays_count, desc: t.inserted_at],
+            limit: 100,
+            preload: [:artist, :album, :collaborators]
+        )
+        |> Enum.map(fn t ->
+          %{
+            id: t.id,
+            title: t.title,
+            duration_seconds: t.duration_seconds || 0,
+            plays_count: t.plays_count || 0,
+            likes_count: t.likes_count || 0,
+            cover: Track.resolve_cover(t),
+            artist: if(t.artist, do: %{id: t.artist.id, name: t.artist.name}, else: nil),
+            collaborators: Enum.map(t.collaborators || [], &%{id: &1.id, name: &1.name}),
+            album_id: t.album_id,
+            age_restriction: t.age_restriction
+          }
+        end)
 
-    json(conn, %{success: true, data: tracks})
+      json(conn, %{success: true, data: tracks})
+    else
+      {:error, reason} -> reject_unauthenticated(conn, reason)
+    end
   end
 
   # Топ 10 артистов
   def top_artists(conn, _params) do
-    artists =
-      Repo.all(
-        from a in Artist,
-          where: a.status == "approved",
-          order_by: [desc: a.plays_count, desc: a.inserted_at],
-          limit: 10
-      )
+    with {:ok, _user} <- authenticate_user(conn) do
+      artists =
+        Repo.all(
+          from a in Artist,
+            where: a.status == "approved",
+            order_by: [desc: a.plays_count, desc: a.inserted_at],
+            limit: 10
+        )
 
-    json(conn, %{success: true, data: artists})
+      json(conn, %{success: true, data: artists})
+    else
+      {:error, reason} -> reject_unauthenticated(conn, reason)
+    end
   end
 
   # Получение одного трека (неодобренные видны только автору и персоналу)
   def get_track(conn, %{"id" => id}) do
-    case Music.parse_nullable_id(id) do
-      nil ->
-        conn |> put_status(:not_found) |> json(%{error: "Трек не найден"})
+    with {:ok, user} <- authenticate_user(conn) do
+      case Music.parse_nullable_id(id) do
+        nil ->
+          conn |> put_status(:not_found) |> json(%{error: "Трек не найден"})
 
-      valid_id ->
-        track =
-          Track
-          |> Repo.get(valid_id)
-          |> Repo.preload([:artist, :album, :collaborators, original_track: [:artist, :album]])
+        valid_id ->
+          track =
+            Track
+            |> Repo.get(valid_id)
+            |> Repo.preload([:artist, :album, :collaborators, original_track: [:artist, :album]])
 
-        user = optional_user(conn)
+          cond do
+            is_nil(track) ->
+              conn |> put_status(:not_found) |> json(%{error: "Трек не найден"})
 
-        cond do
-          is_nil(track) ->
-            conn |> put_status(:not_found) |> json(%{error: "Трек не найден"})
+            track.status != "approved" and not staff?(user) and track.creator_id != user.id ->
+              conn |> put_status(:not_found) |> json(%{error: "Трек не найден"})
 
-          track.status != "approved" and not staff?(user) and (is_nil(user) or track.creator_id != user.id) ->
-            conn |> put_status(:not_found) |> json(%{error: "Трек не найден"})
-
-          true ->
-            json(conn, %{track: track})
-        end
+            true ->
+              json(conn, %{track: track})
+          end
+      end
+    else
+      {:error, reason} -> reject_unauthenticated(conn, reason)
     end
   end
 
@@ -487,7 +536,10 @@ defmodule MusicPlatformApiWeb.MusicController do
       end
     else
       {:error, :unauthorized} ->
-        conn |> put_status(:unauthorized) |> json(%{error: "Требуется авторизация"})
+        reject_unauthenticated(conn, :unauthorized)
+
+      {:error, :pending_approval} ->
+        reject_unauthenticated(conn, :pending_approval)
 
       _ ->
         conn |> put_status(:not_found) |> json(%{error: "Трек не найден"})
@@ -501,8 +553,7 @@ defmodule MusicPlatformApiWeb.MusicController do
       tracks = Music.list_user_favorites(user.id, limit)
       json(conn, %{success: true, data: tracks})
     else
-      {:error, :unauthorized} ->
-        conn |> put_status(:unauthorized) |> json(%{error: "Требуется авторизация"})
+      {:error, reason} -> reject_unauthenticated(conn, reason)
     end
   end
 
@@ -512,8 +563,7 @@ defmodule MusicPlatformApiWeb.MusicController do
       ids = Music.list_user_favorite_ids(user.id)
       json(conn, %{success: true, data: ids})
     else
-      {:error, :unauthorized} ->
-        conn |> put_status(:unauthorized) |> json(%{error: "Требуется авторизация"})
+      {:error, reason} -> reject_unauthenticated(conn, reason)
     end
   end
 
@@ -528,8 +578,7 @@ defmodule MusicPlatformApiWeb.MusicController do
           conn |> put_status(:bad_request) |> json(%{error: "Не удалось обновить избранное"})
       end
     else
-      {:error, :unauthorized} ->
-        conn |> put_status(:unauthorized) |> json(%{error: "Требуется авторизация"})
+      {:error, reason} -> reject_unauthenticated(conn, reason)
     end
   end
 
@@ -543,31 +592,38 @@ defmodule MusicPlatformApiWeb.MusicController do
       playlists = Music.list_my_playlists(user.id)
       json(conn, %{success: true, data: playlists})
     else
-      {:error, :unauthorized} ->
-        conn |> put_status(:unauthorized) |> json(%{error: "Требуется авторизация"})
+      {:error, reason} -> reject_unauthenticated(conn, reason)
     end
   end
 
   # Список публичных плейлистов пользователя для отображения в профиле
   def list_user_playlists(conn, %{"id" => user_id}) do
-    case Music.parse_nullable_id(user_id) do
-      nil ->
-        json(conn, %{success: true, data: []})
+    with {:ok, _user} <- authenticate_user(conn) do
+      case Music.parse_nullable_id(user_id) do
+        nil ->
+          json(conn, %{success: true, data: []})
 
-      uid ->
-        playlists = Music.list_user_public_playlists(uid)
-        json(conn, %{success: true, data: playlists})
+        uid ->
+          playlists = Music.list_user_public_playlists(uid)
+          json(conn, %{success: true, data: playlists})
+      end
+    else
+      {:error, reason} -> reject_unauthenticated(conn, reason)
     end
   end
 
-  # Получение плейлиста по ссылке
+  # Получение плейлиста
   def get_playlist(conn, %{"id" => id}) do
-    case Music.get_playlist(id) do
-      {:ok, playlist} ->
-        json(conn, %{success: true, playlist: playlist})
+    with {:ok, _user} <- authenticate_user(conn) do
+      case Music.get_playlist(id) do
+        {:ok, playlist} ->
+          json(conn, %{success: true, playlist: playlist})
 
-      {:error, :not_found} ->
-        conn |> put_status(:not_found) |> json(%{error: "Плейлист не найден"})
+        {:error, :not_found} ->
+          conn |> put_status(:not_found) |> json(%{error: "Плейлист не найден"})
+      end
+    else
+      {:error, reason} -> reject_unauthenticated(conn, reason)
     end
   end
 
@@ -585,7 +641,10 @@ defmodule MusicPlatformApiWeb.MusicController do
       end
     else
       {:error, :unauthorized} ->
-        conn |> put_status(:unauthorized) |> json(%{error: "Требуется авторизация"})
+        reject_unauthenticated(conn, :unauthorized)
+
+      {:error, :pending_approval} ->
+        reject_unauthenticated(conn, :pending_approval)
 
       {:error, :invalid_file_type} ->
         conn |> put_status(:bad_request) |> json(%{error: "Недопустимый формат обложки"})
@@ -634,7 +693,10 @@ defmodule MusicPlatformApiWeb.MusicController do
       end
     else
       {:error, :unauthorized} ->
-        conn |> put_status(:unauthorized) |> json(%{error: "Требуется авторизация"})
+        reject_unauthenticated(conn, :unauthorized)
+
+      {:error, :pending_approval} ->
+        reject_unauthenticated(conn, :pending_approval)
 
       _ ->
         conn |> put_status(:not_found) |> json(%{error: "Плейлист не найден"})
@@ -659,7 +721,10 @@ defmodule MusicPlatformApiWeb.MusicController do
       end
     else
       {:error, :unauthorized} ->
-        conn |> put_status(:unauthorized) |> json(%{error: "Требуется авторизация"})
+        reject_unauthenticated(conn, :unauthorized)
+
+      {:error, :pending_approval} ->
+        reject_unauthenticated(conn, :pending_approval)
 
       _ ->
         conn |> put_status(:not_found) |> json(%{error: "Плейлист не найден"})
@@ -685,7 +750,10 @@ defmodule MusicPlatformApiWeb.MusicController do
       end
     else
       {:error, :unauthorized} ->
-        conn |> put_status(:unauthorized) |> json(%{error: "Требуется авторизация"})
+        reject_unauthenticated(conn, :unauthorized)
+
+      {:error, :pending_approval} ->
+        reject_unauthenticated(conn, :pending_approval)
 
       _ ->
         conn |> put_status(:not_found) |> json(%{error: "Плейлист не найден"})
@@ -710,7 +778,10 @@ defmodule MusicPlatformApiWeb.MusicController do
       end
     else
       {:error, :unauthorized} ->
-        conn |> put_status(:unauthorized) |> json(%{error: "Требуется авторизация"})
+        reject_unauthenticated(conn, :unauthorized)
+
+      {:error, :pending_approval} ->
+        reject_unauthenticated(conn, :pending_approval)
 
       _ ->
         conn |> put_status(:not_found) |> json(%{error: "Плейлист не найден"})

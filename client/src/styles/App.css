@@ -27,7 +27,7 @@ header {
   display: flex;
   flex-direction: column;
   padding: 0 1.5rem;
-  margin-bottom: 40px;
+  margin-bottom: 24px;
 }
 
 .app-main-default {
@@ -36,4 +36,99 @@ header {
 
 .app-main-player {
   padding-bottom: 0;
+}
+
+.app-main-gate {
+  justify-content: center;
+  align-items: center;
+  padding-top: 2rem;
+  padding-bottom: 2rem;
+}
+
+.access-gate-card {
+  max-width: 560px;
+  width: 100%;
+  background: #ffffff;
+  border-radius: 20px;
+  padding: 2.75rem 2.5rem;
+  box-shadow: 0 12px 35px rgba(0, 0, 0, 0.06);
+  border: 1px solid #f0eded;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 16px;
+}
+
+.access-gate-badge {
+  font-size: 0.78rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 5px 12px;
+  border-radius: 20px;
+  background: #eef6fc;
+  color: #1773cf;
+}
+
+.access-gate-badge-pending {
+  background: #fef3c7;
+  color: #b45309;
+}
+
+.access-gate-title {
+  font-size: 1.75rem;
+  font-weight: 800;
+  color: #14161a;
+  margin: 0;
+  letter-spacing: -0.4px;
+}
+
+.access-gate-desc {
+  font-size: 0.98rem;
+  color: #475569;
+  line-height: 1.55;
+  margin: 0;
+}
+
+.access-gate-subnote {
+  font-size: 0.84rem;
+  color: #64748b;
+  line-height: 1.45;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 10px 14px;
+  margin: 0;
+}
+
+.access-gate-rejected-alert {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-align: left;
+  background: #fee2e2;
+  border: 1px solid #fecaca;
+  color: #991b1b;
+  padding: 12px 14px;
+  border-radius: 12px;
+  font-size: 0.88rem;
+  font-weight: 600;
+  width: 100%;
+}
+
+.access-gate-alert-icon {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  filter: invert(24%) sepia(88%) saturate(3412%) hue-rotate(352deg)
+    brightness(92%) contrast(93%);
+}
+
+.access-gate-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 8px;
+  flex-wrap: wrap;
+  justify-content: center;
 }

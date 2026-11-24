@@ -14,7 +14,6 @@ import userIcon from '../assets/user-svgrepo-com.svg';
 import '../styles/Header.css';
 
 export default function Header() {
-  // Состояния открытого модального окна, вкладок и уведомлений
   const [activeModal, setActiveModal] = useState(null);
   const [authTab, setAuthTab] = useState('login');
   const [uploadTab, setUploadTab] = useState('single');
@@ -28,9 +27,9 @@ export default function Header() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Загрузка количества непрочитанных уведомлений
   const loadUnreadCount = useCallback(async () => {
-    if (!apiClient.getToken()) {
+    const current = apiClient.getUser();
+    if (!apiClient.getToken() || !current || current.status !== 'approved') {
       setUnreadCount(0);
       return;
     }
@@ -45,11 +44,10 @@ export default function Header() {
         setUnreadCount(count);
       }
     } catch (e) {
-      console.log('Выстрелила сетевая временная ошибка')
+      // Игнорируем сетевые ошибки опроса
     }
   }, []);
 
-  // Загрузка пользователя и подписка на события авторизации и уведомлений
   useEffect(() => {
     const currentUser = apiClient.getUser();
     if (currentUser) {
@@ -91,7 +89,6 @@ export default function Header() {
     window.addEventListener('focus', handleVisibilityOrFocus);
     document.addEventListener('visibilitychange', handleVisibilityOrFocus);
 
-    // Закрытие выпадающего меню при клике вне области
     const handleClickOutside = (event) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
         setIsDropdownOpen(false);
@@ -115,9 +112,8 @@ export default function Header() {
     };
   }, [loadUnreadCount]);
 
-  // Периодический опрос новых уведомлений для авторизованного пользователя
   useEffect(() => {
-    if (!user) return;
+    if (!user || user.status !== 'approved') return;
 
     const intervalId = setInterval(() => {
       if (document.visibilityState === 'visible') {
@@ -128,14 +124,12 @@ export default function Header() {
     return () => clearInterval(intervalId);
   }, [user, loadUnreadCount]);
 
-  // Обновление счетчика при переходах по страницам
   useEffect(() => {
-    if (user) {
+    if (user && user.status === 'approved') {
       loadUnreadCount();
     }
   }, [location.pathname, user, loadUnreadCount]);
 
-  // Показ всплывающего уведомления поверх модального окна на 8 секунд
   const showNotification = (msg) => {
     setToastNotification(msg);
     setTimeout(() => {
@@ -143,17 +137,14 @@ export default function Header() {
     }, 8000);
   };
 
-  // Обработка успешного входа
   const handleLoginSuccess = () => {
     const currentUser = apiClient.getUser();
     setUser(currentUser);
     setActiveModal(null);
     setIsDropdownOpen(false);
     loadUnreadCount();
-    window.location.reload();
   };
 
-  // Выход из системы
   const handleLogout = () => {
     apiClient.clearSession();
     setUser(null);
@@ -163,18 +154,16 @@ export default function Header() {
     navigate('/');
   };
 
-  // Переход в профиль
   const handleProfileClick = () => {
     setIsDropdownOpen(false);
     navigate('/profile');
   };
 
-  // Клик по кнопке пользователя в шапке
   const handleUserClick = () => {
     if (user) {
       const nextOpen = !isDropdownOpen;
       setIsDropdownOpen(nextOpen);
-      if (nextOpen) {
+      if (nextOpen && user.status === 'approved') {
         loadUnreadCount();
       }
     } else {
@@ -183,17 +172,17 @@ export default function Header() {
     }
   };
 
-  // Открытие модального окна уведомлений
   const handleNotificationsClick = () => {
     setIsDropdownOpen(false);
     setActiveModal('notifications');
   };
 
+  const isApproved = Boolean(user && user.status === 'approved');
   const displayName = user ? user.nickname || user.login : null;
   const canManageRoles =
-    user && (user.role === 'owner' || user.role === 'admin');
+    isApproved && (user.role === 'owner' || user.role === 'admin');
   const isStaff =
-    user &&
+    isApproved &&
     (user.role === 'owner' ||
       user.role === 'admin' ||
       user.role === 'moderator');
@@ -204,14 +193,11 @@ export default function Header() {
     user && user.avatar && user.avatar.trim() !== '',
   );
 
-  // Вкладки для окна авторизации
   const authTabs = [
     { id: 'login', label: 'Вход' },
     { id: 'register', label: 'Регистрация' },
-    ...(authTab === 'reset' ? [{ id: 'reset', label: 'Сброс пароля' }] : []),
   ];
 
-  // Вкладки для окна загрузки музыки
   const uploadTabs = [
     { id: 'single', label: 'Сингл' },
     { id: 'album', label: 'Альбом' },
@@ -220,7 +206,6 @@ export default function Header() {
 
   return (
     <>
-      {/* Контейнер модального окна авторизации */}
       <Modal
         isOpen={activeModal === 'auth'}
         onClose={() => setActiveModal(null)}
@@ -238,7 +223,6 @@ export default function Header() {
         />
       </Modal>
 
-      {/* Контейнер модального окна загрузки музыки */}
       <Modal
         isOpen={activeModal === 'upload'}
         onClose={() => setActiveModal(null)}
@@ -258,7 +242,6 @@ export default function Header() {
         />
       </Modal>
 
-      {/* Модальное окно уведомлений */}
       <NotificationsModal
         isOpen={activeModal === 'notifications'}
         onClose={() => {
@@ -296,70 +279,73 @@ export default function Header() {
               <span>{user ? displayName : 'Войти'}</span>
             </Button>
 
-            {/* Выпадающее меню пользователя */}
             {user && isDropdownOpen && (
               <div className="user-dropdown">
-                <button
-                  type="button"
-                  className="dropdown-item"
-                  onClick={handleProfileClick}
-                >
-                  <span>Профиль</span>
-                </button>
+                {isApproved && (
+                  <>
+                    <button
+                      type="button"
+                      className="dropdown-item"
+                      onClick={handleProfileClick}
+                    >
+                      <span>Профиль</span>
+                    </button>
 
-                {canManageRoles && (
-                  <button
-                    type="button"
-                    className="dropdown-item"
-                    onClick={() => {
-                      setIsDropdownOpen(false);
-                      navigate('/roles');
-                    }}
-                  >
-                    <span>Управление ролями</span>
-                  </button>
+                    {canManageRoles && (
+                      <button
+                        type="button"
+                        className="dropdown-item"
+                        onClick={() => {
+                          setIsDropdownOpen(false);
+                          navigate('/roles');
+                        }}
+                      >
+                        <span>Управление ролями</span>
+                      </button>
+                    )}
+
+                    {isStaff && (
+                      <button
+                        type="button"
+                        className="dropdown-item"
+                        onClick={() => {
+                          setIsDropdownOpen(false);
+                          navigate('/moderation');
+                        }}
+                      >
+                        <span>Модерация</span>
+                      </button>
+                    )}
+
+                    <button
+                      type="button"
+                      className="dropdown-item"
+                      onClick={handleNotificationsClick}
+                    >
+                      <span>Уведомления</span>
+                      {unreadCount > 0 && (
+                        <span className="dropdown-badge-counter">
+                          {unreadCount}
+                        </span>
+                      )}
+                    </button>
+
+                    {user.role === 'owner' && (
+                      <button
+                        type="button"
+                        className="dropdown-item"
+                        onClick={() => {
+                          setIsDropdownOpen(false);
+                          navigate('/genres');
+                        }}
+                      >
+                        <span>Кластер жанров</span>
+                      </button>
+                    )}
+
+                    <div className="dropdown-divider"></div>
+                  </>
                 )}
-
-                {isStaff && (
-                  <button
-                    type="button"
-                    className="dropdown-item"
-                    onClick={() => {
-                      setIsDropdownOpen(false);
-                      navigate('/moderation');
-                    }}
-                  >
-                    <span>Модерация</span>
-                  </button>
-                )}
-
-                <button
-                  type="button"
-                  className="dropdown-item"
-                  onClick={handleNotificationsClick}
-                >
-                  <span>Уведомления</span>
-                  {unreadCount > 0 && (
-                    <span className="dropdown-badge-counter">
-                      {unreadCount}
-                    </span>
-                  )}
-                </button>
-
-                {user && user.role === 'owner' && (
-                  <button
-                    type="button"
-                    className="dropdown-item"
-                    onClick={() => {
-                      setIsDropdownOpen(false);
-                      navigate('/genres');
-                    }}
-                  >
-                    <span>Кластер жанров</span>
-                  </button>
-                )}
-
-                <div className="dropdown-divider"></div>
 
                 <button
                   type="button"

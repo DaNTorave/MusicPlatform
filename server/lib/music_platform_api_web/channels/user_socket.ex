@@ -1,14 +1,18 @@
 defmodule MusicPlatformApiWeb.UserSocket do
   use Phoenix.Socket
-  alias MusicPlatformApi.Token
+  alias MusicPlatformApi.Auth
 
   channel "radio:*", MusicPlatformApiWeb.RadioChannel
 
   @impl true
   def connect(%{"token" => token}, socket, _connect_info) do
-    case Token.verify_token(token) do
-      {:ok, %{"user_id" => user_id}} ->
-        {:ok, assign(socket, :user_id, user_id)}
+    case Auth.get_user_from_token(token) do
+      user when not is_nil(user) ->
+        if Auth.approved?(user) do
+          {:ok, assign(socket, :user_id, user.id)}
+        else
+          :error
+        end
 
       _ ->
         :error

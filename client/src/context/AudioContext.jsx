@@ -6,8 +6,18 @@ import React, {
   useRef,
 } from 'react';
 import { radioSocket } from '../api/radioSocket';
+import { apiClient } from '../api/apiClient';
 
 const AudioContext = createContext(null);
+
+function buildStreamUrl(track) {
+  if (!track) return '';
+  if (track.streamUrl) return track.streamUrl;
+  const token = apiClient.getToken();
+  return token
+    ? `/api/stream/${track.id}?token=${encodeURIComponent(token)}`
+    : `/api/stream/${track.id}`;
+}
 
 export const AudioProvider = ({ children }) => {
   const [currentTrack, setCurrentTrack] = useState(() => {
@@ -93,8 +103,8 @@ export const AudioProvider = ({ children }) => {
 
     setIsPlaying(false);
 
-    if (currentTrack?.id) {
-      const targetSrc = currentTrack.streamUrl || `/api/stream/${currentTrack.id}`;
+    if (currentTrack?.id && apiClient.getToken()) {
+      const targetSrc = buildStreamUrl(currentTrack);
       currentSrcRef.current = targetSrc;
       audio.src = targetSrc;
     }
@@ -128,7 +138,7 @@ export const AudioProvider = ({ children }) => {
       playInternalTrack(tracks[0], tracks);
     } catch (err) {
       console.error('Ошибка запуска эфира:', err);
-      alert('Для запуска персонального эфира необходимо войти в аккаунт.');
+      alert('Для запуска персонального эфира необходимо войти в одобренный аккаунт.');
     }
   };
 
@@ -148,7 +158,6 @@ export const AudioProvider = ({ children }) => {
 
     if (!currentT) return;
 
-    // Фиксация раннего пропуска (до 30 секунд), если трек еще не дослушан
     if (audio && !completedReportedRef.current && audio.currentTime > 0 && audio.currentTime < 30) {
       radioSocket.sendFeedback(currentT.id, 'skip_early', audio.currentTime * 1000);
     }
@@ -159,7 +168,6 @@ export const AudioProvider = ({ children }) => {
       const nextT = currentQ[currentIndex + 1];
       playInternalTrack(nextT, currentQ);
 
-      // Если в режиме радио осталось меньше 2 треков впереди, подгружаем новую пачку
       if (isRadioModeRef.current && currentQ.length - (currentIndex + 1) <= 2) {
         try {
           const moreTracks = await radioSocket.requestMore();
@@ -249,7 +257,7 @@ export const AudioProvider = ({ children }) => {
       }
     }
 
-    const targetSrc = track.streamUrl || `/api/stream/${track.id}`;
+    const targetSrc = buildStreamUrl(track);
     setCurrentTrack(track);
     currentTrackRef.current = track;
 
@@ -276,11 +284,10 @@ export const AudioProvider = ({ children }) => {
       });
   };
 
-  // Обычный запуск трека из каталога или плейлиста выключает режим радио
   const playTrack = (track, newQueue = null) => {
     if (!track || !track.id) return;
     const audio = audioRef.current;
-    const targetSrc = track.streamUrl || `/api/stream/${track.id}`;
+    const targetSrc = buildStreamUrl(track);
     const isSameTrack = currentTrack && String(currentTrack.id) === String(track.id);
 
     if (isSameTrack && !track.streamUrl) {

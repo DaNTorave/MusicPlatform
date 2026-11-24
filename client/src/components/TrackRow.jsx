@@ -33,11 +33,9 @@ export default function TrackRow({
   isFavorite: explicitIsFavorite,
   onToggleFavorite,
 }) {
-  // Получение функций проверки и изменения статуса избранного из контекста
   const { isFavorite: checkFavorite, toggleFavorite: ctxToggleFavorite } =
     useFavorites();
 
-  // Вычисление итогового состояния избранного
   const isFavorite =
     explicitIsFavorite !== undefined
       ? explicitIsFavorite
@@ -47,7 +45,6 @@ export default function TrackRow({
     () => track.duration_seconds || track.duration || 0,
   );
 
-  // Состояния меню действий, направления открытия и модального окна выбора плейлиста
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [menuDirection, setMenuDirection] = useState('down');
   const [isPlaylistModalOpen, setIsPlaylistModalOpen] = useState(false);
@@ -55,7 +52,6 @@ export default function TrackRow({
 
   const currentUser = apiClient.getUser();
 
-  // Закрытие всплывающего меню при клике вне его области
   useEffect(() => {
     if (!isMenuOpen) return;
     const handleClickOutside = (e) => {
@@ -70,7 +66,6 @@ export default function TrackRow({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [isMenuOpen]);
 
-  // Определение длительности через загрузку метаданных при ее отсутствии
   useEffect(() => {
     const directDur = track.duration_seconds || track.duration;
     if (directDur && directDur > 0) {
@@ -78,11 +73,12 @@ export default function TrackRow({
       return;
     }
 
-    if (track.id) {
+    const token = apiClient.getToken();
+    if (track.id && token) {
       let isMounted = true;
       const audio = new Audio();
       audio.preload = 'metadata';
-      audio.src = `/api/stream/${track.id}`;
+      audio.src = `/api/stream/${track.id}?token=${encodeURIComponent(token)}`;
 
       const handleLoadedMetadata = () => {
         if (
@@ -106,7 +102,6 @@ export default function TrackRow({
     }
   }, [track.id, track.duration_seconds, track.duration]);
 
-  // Обработка нажатия на кнопку добавления в избранное
   const handleFavoriteClick = (e) => {
     e.stopPropagation();
     if (onToggleFavorite) {
@@ -116,7 +111,6 @@ export default function TrackRow({
     }
   };
 
-  // Форматирование секунд в минуты и секунды
   const formatDuration = (seconds) => {
     if (!seconds || isNaN(seconds) || seconds <= 0) return '--:--';
     const mins = Math.floor(seconds / 60);
@@ -124,7 +118,6 @@ export default function TrackRow({
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
-  // Построение списка исполнителей
   const artistsList = [];
   if (track.artist && track.artist.name) {
     artistsList.push(track.artist);
@@ -147,7 +140,6 @@ export default function TrackRow({
     Boolean(track.original_track_id) ||
     Boolean(originalTrack);
 
-  // Переключение на воспроизведение оригинальной композиции
   const handleCoverClick = (e) => {
     e.stopPropagation();
     if (originalTrack && onPlay) {
@@ -159,19 +151,20 @@ export default function TrackRow({
     }
   };
 
-  // Скачивание файла композиции
   const handleDownload = (e) => {
     if (e) e.stopPropagation();
     if (!track.id) return;
+    const token = apiClient.getToken();
     const link = document.createElement('a');
-    link.href = `/api/download/${track.id}`;
+    link.href = token
+      ? `/api/download/${track.id}?token=${encodeURIComponent(token)}`
+      : `/api/download/${track.id}`;
     link.download = `${track.title || 'track'}.mp3`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
   };
 
-  // Открытие окна выбора плейлиста
   const handleOpenAddToPlaylist = (e) => {
     e.stopPropagation();
     setIsMenuOpen(false);
@@ -182,7 +175,6 @@ export default function TrackRow({
     setIsPlaylistModalOpen(true);
   };
 
-  // Вычисление направления открытия меню относительно границ родительского блока и окна
   const handleToggleMenu = (e) => {
     e.stopPropagation();
     if (!isMenuOpen && menuWrapperRef.current) {
@@ -358,7 +350,6 @@ export default function TrackRow({
             <img src={downloadIcon} alt="Скачать" className="action-icon" />
           </button>
 
-          {/* Кнопка с тремя точками и всплывающее меню действий */}
           <div className="track-more-wrapper" ref={menuWrapperRef}>
             <button
               type="button"

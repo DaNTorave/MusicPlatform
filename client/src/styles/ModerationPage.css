@@ -20,6 +20,57 @@
   align-items: center;
 }
 
+.moderation-tabs-bar {
+  display: flex;
+  gap: 8px;
+  background: #f4f4f5;
+  padding: 5px;
+  border-radius: 14px;
+  border: 1px solid #e4e4e7;
+  width: fit-content;
+  flex-wrap: wrap;
+}
+
+.moderation-tab-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: none;
+  background: transparent;
+  color: #52525b;
+  font-size: 0.92rem;
+  font-weight: 700;
+  padding: 8px 16px;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.moderation-tab-btn:hover {
+  color: #14161a;
+  background: rgba(255, 255, 255, 0.6);
+}
+
+.moderation-tab-btn.moderation-tab-active {
+  background: #ffffff;
+  color: #1773cf;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.moderation-tab-counter {
+  background: #e0f2fe;
+  color: #0369a1;
+  font-size: 0.75rem;
+  font-weight: 800;
+  padding: 2px 8px;
+  border-radius: 12px;
+}
+
+.moderation-tab-counter-users {
+  background: #fef3c7;
+  color: #b45309;
+}
+
 .moderation-list {
   display: flex;
   flex-direction: column;
@@ -43,6 +94,27 @@
   height: 84px;
   border-radius: 10px;
   object-fit: cover;
+}
+
+.moderation-user-avatar-preview {
+  width: 68px;
+  height: 68px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid #e2e8f0;
+  flex-shrink: 0;
+}
+
+.moderation-user-login-tag {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #64748b;
+}
+
+.moderation-user-actions {
+  display: flex;
+  gap: 10px;
+  flex-shrink: 0;
 }
 
 .moderation-card-info {
@@ -103,4 +175,15 @@
   color: #888;
   font-size: 0.95rem;
   font-style: italic;
+}
+
+@media (max-width: 768px) {
+  .moderation-card {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .moderation-user-actions {
+    width: 100%;
+  }
 }

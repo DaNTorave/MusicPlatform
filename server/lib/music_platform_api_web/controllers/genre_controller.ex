@@ -4,10 +4,20 @@ defmodule MusicPlatformApiWeb.GenreController do
   alias MusicPlatformApi.{Auth, Repo}
   alias MusicPlatformApi.Music.Genre
 
-  # Проверка прав владельца
+  defp require_approved_user(conn) do
+    with ["Bearer " <> token] <- get_req_header(conn, "authorization"),
+         user when not is_nil(user) <- Auth.get_user_from_token(token),
+         true <- Auth.approved?(user) do
+      {:ok, user}
+    else
+      _ -> {:error, :unauthorized}
+    end
+  end
+
   defp require_owner(conn, _opts) do
     with ["Bearer " <> token] <- get_req_header(conn, "authorization"),
-         user when not is_nil(user) and user.role == "owner" <- Auth.get_user_from_token(token) do
+         user when not is_nil(user) and user.role == "owner" and user.status == "approved" <-
+           Auth.get_user_from_token(token) do
       assign(conn, :current_user, user)
     else
       _ ->
@@ -18,13 +28,17 @@ defmodule MusicPlatformApiWeb.GenreController do
     end
   end
 
-  # Список всех жанров с сортировкой по ID
   def index(conn, _params) do
-    genres = Repo.all(from g in Genre, order_by: [asc: g.id])
-    json(conn, %{success: true, data: genres})
+    case require_approved_user(conn) do
+      {:ok, _user} ->
+        genres = Repo.all(from g in Genre, order_by: [asc: g.id])
+        json(conn, %{success: true, data: genres})
+
+      {:error, _} ->
+        conn |> put_status(:unauthorized) |> json(%{error: "Требуется авторизация"})
+    end
   end
 
-  # Создание жанра
   def create(conn, params) do
     conn = require_owner(conn, [])
     if conn.halted do
@@ -47,7 +61,6 @@ defmodule MusicPlatformApiWeb.GenreController do
     end
   end
 
-  # Обновление жанра
   def update(conn, %{"id" => id} = params) do
     conn = require_owner(conn, [])
     if conn.halted do
@@ -76,7 +89,6 @@ defmodule MusicPlatformApiWeb.GenreController do
     end
   end
 
-  # Удаление жанра
   def delete(conn, %{"id" => id}) do
     conn = require_owner(conn, [])
     if conn.halted do

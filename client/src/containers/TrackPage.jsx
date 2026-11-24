@@ -14,14 +14,12 @@ import '../styles/TrackPage.css';
 
 export default function TrackPage() {
   const { id } = useParams();
-  // Состояния трека, загрузки и ошибок
   const [track, setTrack] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   const { currentTrack, isPlaying, playTrack } = useAudioPlayer();
 
-  // Загрузка данных трека
   useEffect(() => {
     const fetchTrack = async () => {
       setLoading(true);
@@ -67,7 +65,6 @@ export default function TrackPage() {
     currentTrack && String(currentTrack.id) === String(track.id);
   const isPlayingNow = isCurrentActive && isPlaying;
 
-  // Формирование списка исполнителей
   const allArtists = [];
   if (track.artist && track.artist.name) {
     allArtists.push(track.artist);
@@ -84,22 +81,22 @@ export default function TrackPage() {
     });
   }
 
-  // Переключение воспроизведения
   const handleTogglePlay = () => {
     playTrack(track);
   };
 
-  // Скачивание трека
   const handleDownload = () => {
+    const token = apiClient.getToken();
     const link = document.createElement('a');
-    link.href = `/api/download/${track.id}`;
+    link.href = token
+      ? `/api/download/${track.id}?token=${encodeURIComponent(token)}`
+      : `/api/download/${track.id}`;
     link.download = `${track.title || 'track'}.mp3`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
   };
 
-  // Форматирование длительности
   const formatDuration = (seconds) => {
     if (!seconds || isNaN(seconds) || seconds <= 0) return '--:--';
     const mins = Math.floor(seconds / 60);

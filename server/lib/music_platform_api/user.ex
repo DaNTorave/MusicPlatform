@@ -3,8 +3,9 @@ defmodule MusicPlatformApi.User do
   import Ecto.Changeset
   alias MusicPlatformApi.PasswordUtils
 
-  # Иерархия доступных ролей
   @roles ["member", "moderator", "admin", "owner"]
+  @statuses ["pending", "approved"]
+  @reserved_logins ~w(admin administrator owner moderator moder support system root info help api staff)
 
   schema "users" do
     field :login, :string
@@ -14,7 +15,13 @@ defmodule MusicPlatformApi.User do
     field :nickname, :string
     field :avatar, :string
     field :role, :string, default: "member"
+    field :status, :string, default: "pending"
     field :is_premium, :boolean, default: false
+
+    field :terms_accepted, :boolean, virtual: true
+    field :privacy_accepted, :boolean, virtual: true
+    field :terms_accepted_at, :utc_datetime_usec
+    field :privacy_accepted_at, :utc_datetime_usec
 
     field :preferred_genres, {:array, :string}, default: []
     field :preferred_artist_ids, {:array, :integer}, default: []
@@ -28,9 +35,13 @@ defmodule MusicPlatformApi.User do
   end
 
   def roles, do: @roles
+  def statuses, do: @statuses
+  def reserved_logins, do: @reserved_logins
 
-  # Валидация при регистрации
+  # Валидация при регистрации с проверкой уникальности логина и согласий по 152-ФЗ
   def registration_changeset(user, attrs) do
+    now = DateTime.utc_now()
+
     user
     |> cast(attrs, [
       :login,
@@ -38,17 +49,42 @@ defmodule MusicPlatformApi.User do
       :password,
       :nickname,
       :preferred_genres,
-      :preferred_artist_ids
+      :preferred_artist_ids,
+      :terms_accepted,
+      :privacy_accepted
     ])
+    |> update_change(:login, &String.trim/1)
+    |> update_change(:email, fn e -> e |> String.trim() |> String.downcase() end)
     |> validate_required([:login, :email, :password])
+    |> validate_acceptance(:terms_accepted, message: "Необходимо принять пользовательское соглашение")
+    |> validate_acceptance(:privacy_accepted, message: "Необходимо дать согласие на обработку персональных данных")
     |> validate_length(:login, min: 3, max: 30)
     |> validate_format(:login, ~r/^[a-zA-Z0-9_]+$/)
+    |> validate_not_reserved_login()
     |> validate_format(:email, ~r/^[^\s@]+@[^\s@]+\.[^\s@]+$/)
     |> validate_length(:password, min: 8)
     |> unique_constraint(:login, name: :users_login_index)
+    |> unique_constraint(:login, name: :users_lower_login_index, message: "Логин уже занят")
     |> unique_constraint(:email, name: :users_email_index)
     |> put_change(:role, "member")
+    |> put_change(:status, "pending")
+    |> put_change(:terms_accepted_at, now)
+    |> put_change(:privacy_accepted_at, now)
     |> put_password_hash()
+  end
+
+  defp validate_not_reserved_login(changeset) do
+    case get_field(changeset, :login) do
+      login when is_binary(login) ->
+        if String.downcase(login) in @reserved_logins do
+          add_error(changeset, :login, "Этот логин зарезервирован системой")
+        else
+          changeset
+        end
+
+      _ ->
+        changeset
+    end
   end
 
   # Обновление публичных данных профиля
@@ -72,6 +108,14 @@ defmodule MusicPlatformApi.User do
     |> validate_inclusion(:role, @roles)
   end
 
+  # Изменение статуса модерации пользователя
+  def status_changeset(user, attrs) do
+    user
+    |> cast(attrs, [:status])
+    |> validate_required([:status])
+    |> validate_inclusion(:status, @statuses)
+  end
+
   # Хеширование пароля с применением перца и соли Pbkdf2
   def put_password_hash(changeset) do
     case get_change(changeset, :password) do
@@ -84,7 +128,7 @@ defmodule MusicPlatformApi.User do
     end
   end
 
-  # Проверка валидности пароля (с поддержкой совместимости для старых хешей без перца)
+  # Проверка валидности пароля
   def valid_password?(%__MODULE__{password_hash: hash}, password)
       when is_binary(hash) and is_binary(password) do
     peppered = PasswordUtils.apply_pepper(password)

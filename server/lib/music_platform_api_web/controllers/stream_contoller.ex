@@ -18,10 +18,12 @@ defmodule MusicPlatformApiWeb.StreamController do
     end
   end
 
+  # Доступ к потоку и скачиванию открыт только одобренным пользователям
   defp can_access_track?(track, user) do
     cond do
-      track.status == "approved" -> true
       is_nil(user) -> false
+      not Auth.approved?(user) -> false
+      track.status == "approved" -> true
       user.role in ["owner", "admin", "moderator"] -> true
       track.creator_id == user.id -> true
       true -> false
@@ -45,7 +47,7 @@ defmodule MusicPlatformApiWeb.StreamController do
       send_audio_stream(conn, track.file_path, file_size)
     else
       false ->
-        conn |> put_status(:not_found) |> json(%{error: "Трек или файл не найден"})
+        conn |> put_status(:forbidden) |> json(%{error: "Доступ к аудиозаписи запрещен"})
 
       _ ->
         conn |> put_status(:not_found) |> json(%{error: "Трек не найден"})
@@ -151,12 +153,14 @@ defmodule MusicPlatformApiWeb.StreamController do
       |> put_resp_header("content-length", to_string(byte_size(tagged_audio)))
       |> send_resp(200, tagged_audio)
     else
+      false ->
+        conn |> put_status(:forbidden) |> json(%{error: "Доступ к скачиванию запрещен"})
+
       _ ->
         conn |> put_status(:not_found) |> json(%{error: "Файл не найден"})
     end
   end
 
-  # Поиск и чтение обложки для трека
   defp load_track_cover(track) do
     cover_candidate =
       cond do
@@ -185,7 +189,6 @@ defmodule MusicPlatformApiWeb.StreamController do
     end
   end
 
-  # Чтение файла обложки по пути
   defp read_cover_file(path_or_url) when is_binary(path_or_url) and path_or_url != "" do
     case resolve_disk_path(path_or_url) do
       {:ok, full_path} ->
@@ -205,7 +208,6 @@ defmodule MusicPlatformApiWeb.StreamController do
 
   defp read_cover_file(_), do: :error
 
-  # Чтение запасной обложки
   defp read_default_cover do
     default_candidates =
       [
@@ -225,7 +227,6 @@ defmodule MusicPlatformApiWeb.StreamController do
     end
   end
 
-  # Разрешение абсолютного пути к файлу на диске строго в пределах uploads
   defp resolve_disk_path(url_or_path) when is_binary(url_or_path) and url_or_path != "" do
     uploads_root = Path.expand("priv/static/uploads")
     clean_path = String.replace_leading(url_or_path, "/", "")
@@ -247,7 +248,6 @@ defmodule MusicPlatformApiWeb.StreamController do
 
   defp resolve_disk_path(_), do: :error
 
-  # Определение MIME-типа изображения
   defp detect_mime(path, binary) do
     ext = Path.extname(path) |> String.downcase()
 
